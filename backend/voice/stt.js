@@ -1,7 +1,7 @@
 // Speech-to-text through hosted speech services with failover (the browser Web Speech API is not used).
 
 const VOCAB_HINT =
-  'Knotopian Institute of Technology, KIT, B.Tech, M.Tech, CSE, ECE, MECH, on-duty, OD, CGPA, arrears, internal assessment, Zoho, TCS, Freshworks, DBMS, normalization, Coimbatore.';
+  'Knotopian Institute of Technology, KIT, B.Tech, M.Tech, CSE, ECE, MECH, on-duty, OD, CGPA, arrears, internal assessment, Zoho, TCS, Freshworks, DBMS, normalization, Coimbatore, admission, admissions, application, eligibility, fees, approve, reject.';
 
 const EXT = { 'audio/webm': 'webm', 'audio/ogg': 'ogg', 'audio/mp4': 'mp4', 'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/x-wav': 'wav' };
 
