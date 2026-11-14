@@ -7,6 +7,7 @@ import { AgentUnavailableError } from './agent/orchestrator.js';
 import { recentActionNotes } from './services/history.js';
 import { SttUnavailableError } from './voice/stt.js';
 import { SESSION_COOKIE, VISITOR_COOKIE, cookie, newId, parseCookies } from './auth/security.js';
+import { registerPortalRoutes } from './routes/portal.js';
 
 const FRONTEND_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'frontend');
 const PAGES = { '/': 'index.html', '/login': 'login.html', '/assistant': 'assistant.html', '/history': 'history.html' };
@@ -246,15 +247,18 @@ export function createApp({ kit, agent, transcriber, store, sessions, knowledge,
     res.json({ conversation, messages });
   });
 
+  registerPortalRoutes(app, { kit, store, sessions, logger });
   app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
+  // no-cache = always revalidate (cheap 304 when unchanged), so a redeploy is never hidden by stale JS/CSS in the browser.
+  const revalidate = (res) => res.setHeader('Cache-Control', 'no-cache');
   for (const [route, page] of Object.entries(PAGES)) {
-    app.get(route, (req, res) => res.sendFile(path.join(FRONTEND_DIR, 'pages', page)));
+    app.get(route, (req, res) => res.sendFile(path.join(FRONTEND_DIR, 'pages', page), { headers: { 'Cache-Control': 'no-cache' } }));
   }
   app.get(['/favicon.svg', '/favicon.ico'], (req, res) => {
     res.type('image/svg+xml').set('Cache-Control', 'public, max-age=86400').sendFile(path.join(FRONTEND_DIR, 'favicon.svg'));
   });
-  for (const dir of ['pages', 'components', 'services', 'styles']) {
-    app.use(`/${dir}`, express.static(path.join(FRONTEND_DIR, dir), { index: false }));
+  for (const dir of ['pages', 'components', 'services', 'styles', 'images']) {
+    app.use(`/${dir}`, express.static(path.join(FRONTEND_DIR, dir), { index: false, setHeaders: revalidate }));
   }
 
   app.use((err, req, res, _next) => {

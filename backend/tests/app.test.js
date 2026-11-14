@@ -11,8 +11,13 @@ let base;
 let store;
 const agentCalls = [];
 
+const kitPosts = [];
 const kit = {
   get: async (p) => (p === '/v1/college' ? { name: 'KIT' } : [{ code: 'BTECH-CSE' }]),
+  post: async (p, o) => {
+    kitPosts.push({ p, o });
+    return { id: 44, student_id: 101, student_name: 'Vikram T', type: 'on_duty', from_date: '2026-11-30', to_date: '2026-11-30', half_day: false, reason: 'x', status: p.endsWith('approve') ? 'approved' : 'rejected' };
+  },
   login: async (id, pw) => {
     if (pw !== 'Kit@2026') throw new KitApiError(401, 'unauthorized', 'Invalid login ID or password.');
     return { access_token: `secret-jwt-${id}`, expires_in: 28800, user: { id: 1, login_id: id, full_name: id, role: id === 'lakshmi' ? 'teacher' : 'student' } };
@@ -133,4 +138,22 @@ test('health reports college system reachability from /v1/health', async () => {
   assert.equal(r.status, 200);
   assert.equal(r.data.ok, true);
   assert.equal(r.data.collegeSystem.reachable, true);
+});
+
+test('teacher approval routes: login, role and reason are enforced; decisions are saved', async () => {
+  assert.equal((await client()('/api/teacher/requests/44/approve', { method: 'POST', body: {} })).status, 401);
+  const student = client();
+  await student('/api/auth/login', { method: 'POST', body: { login_id: 'arjun', password: 'Kit@2026' } });
+  assert.equal((await student('/api/teacher/requests/44/approve', { method: 'POST', body: {} })).status, 403);
+
+  const teacher = client();
+  await teacher('/api/auth/login', { method: 'POST', body: { login_id: 'lakshmi', password: 'Kit@2026' } });
+  assert.equal((await teacher('/api/teacher/requests/44/reject', { method: 'POST', body: { reason: '  ' } })).status, 400);
+  assert.equal((await teacher('/api/teacher/requests/abc/approve', { method: 'POST', body: {} })).status, 400);
+  const ok = await teacher('/api/teacher/requests/44/approve', { method: 'POST', body: {} });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.data.request.status, 'approved');
+  assert.equal(kitPosts.at(-1).o.token, 'secret-jwt-lakshmi');
+  assert.ok(kitPosts.at(-1).o.idempotencyKey);
+  assert.equal((await store.records('requests')).find((r) => r.id === 44).status, 'approved');
 });

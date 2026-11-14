@@ -1,36 +1,17 @@
 // Round mic button: records with MediaRecorder and stops automatically when the speaker goes quiet.
+import { icon } from './icons.js';
 
 const SILENCE_MS = 1300;
 const NO_SPEECH_MS = 8000;
 const MAX_RECORD_MS = 30000;
 const SPEECH_RMS = 0.025;
-const SVG_NS = 'http://www.w3.org/2000/svg';
-
-function icon(paths) {
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('fill', 'none');
-  svg.setAttribute('stroke', 'currentColor');
-  svg.setAttribute('stroke-width', '2');
-  svg.setAttribute('stroke-linecap', 'round');
-  svg.setAttribute('aria-hidden', 'true');
-  for (const d of paths) {
-    const p = document.createElementNS(SVG_NS, 'path');
-    p.setAttribute('d', d);
-    svg.append(p);
-  }
-  return svg;
-}
-const MIC = ['M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z', 'M19 11a7 7 0 0 1-14 0', 'M12 18v3'];
-const STOP = ['M7 7h10v10H7z'];
-
 function pickMimeType() {
   const options = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
   return options.find((t) => window.MediaRecorder?.isTypeSupported?.(t)) ?? '';
 }
 
-/** onStart(): recording begins. onAudio(blob): recording finished. onStatus(text): status message. */
-export function createMicButton({ onStart, onAudio, onStatus }) {
+/** onStart(): recording begins. onAudio(blob): recording finished. onStatus(text): status. onRecording(bool): state change. */
+export function createMicButton({ onStart, onAudio, onStatus, onRecording }) {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'talk';
@@ -44,12 +25,13 @@ export function createMicButton({ onStart, onAudio, onStatus }) {
 
   function render() {
     const rec = recording();
-    button.replaceChildren(icon(rec ? STOP : MIC));
+    button.replaceChildren(icon(rec ? 'stop' : 'mic', 26));
     button.setAttribute('aria-label', rec ? 'Stop recording' : 'Tap to talk');
     button.title = rec ? 'Stop' : 'Tap to talk';
     button.disabled = busy && !rec;
     button.classList.toggle('recording', rec);
     button.classList.toggle('busy', busy && !rec);
+    onRecording?.(rec);
   }
 
   function cleanup() {

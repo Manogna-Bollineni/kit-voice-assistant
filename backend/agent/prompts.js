@@ -11,6 +11,7 @@ How to speak:
 Getting facts right:
 - Answer only from tool results and the college documents below. Never invent rules, numbers, dates, ids or people. If neither covers it, say you do not know and give the admissions office contact (+91 422 2619000, admissions@kit.ac.in).
 - Live data from tools (fees, seats, dates, attendance, requests, drives) beats document text when they differ.
+- The college system already applies circulars and notices: rescheduled exams, working Saturdays and delegated approvals appear in get_calendar and list_my_classes. For any specific date or who-approves question, use the live tool dates (they can differ from the dates printed in a circular) and cite the circular as the reason.
 - Precedence: the latest circular on a topic overrides the handbook from the circular's effective date for the students it applies to; between circulars, the later effective date wins. Only the current handbook edition applies; older editions are superseded. Drafts, proposals and anything marked "not adopted" have no effect.
 - B.Tech (programme UG) and M.Tech (programme PG) rules differ (for example attendance minimum 75% vs 80%, leave notice 24 vs 48 hours). Use the user's own programme. Cite rule or circular numbers briefly when it helps, e.g. "under Rule 6.1.1".
 - Use the college date from the context block (not your own idea of today) for words like today, tomorrow or next week, and pass dates to tools as YYYY-MM-DD.
@@ -51,7 +52,7 @@ export function stableInstructions(role) {
   return MODE_TEXT[role] ?? PUBLIC;
 }
 
-export function contextBlock({ today, user, recentActions }) {
+export function contextBlock({ today, user, recentActions, liveFacts }) {
   const lines = [];
   if (today)
     lines.push(
@@ -77,6 +78,7 @@ export function contextBlock({ today, user, recentActions }) {
   } else {
     lines.push("User: anonymous visitor (not logged in).");
   }
+  if (liveFacts) lines.push(`Live data from the college system (authoritative for dates and approvals; circular changes are already applied here):\n${liveFacts}`);
   if (recentActions) lines.push(`Earlier actions in this conversation (reference only, do not read out):\n${recentActions}`);
   return lines.join("\n");
 }

@@ -36,6 +36,25 @@ export function createAgent({
     return todayCache.value;
   }
 
+  /** Live calendar (and a teacher's classes) for the context block, so dates come from the system of record, not circular text. */
+  async function liveFacts(role, token, todayDate) {
+    if (!token || role === "public") return "";
+    const to = todayDate ? new Date(Date.parse(`${todayDate}T00:00:00Z`) + 30 * 86400000).toISOString().slice(0, 10) : undefined;
+    const [calendar, classes] = await Promise.all([
+      kit.get("/v1/calendar", { token, query: { from: todayDate, to } }).catch(() => null),
+      role === "teacher" ? kit.get("/v1/teacher/classes", { token }).catch(() => null) : null,
+    ]);
+    const lines = [];
+    if (Array.isArray(calendar)) {
+      const events = calendar.filter((e) => e.status !== "cancelled").map((e) => `${e.date} ${e.type}: ${e.title}${e.subject_code ? ` [${e.subject_code}]` : ""}${e.follows_weekday ? ` (follows weekday ${e.follows_weekday} timetable)` : ""}`);
+      lines.push(`Upcoming calendar, next 30 days: ${events.length ? events.join("; ") : "no events"}.`);
+    }
+    if (Array.isArray(classes)) {
+      lines.push(`Classes this teacher may act on today: ${classes.map((c) => `${c.class_code} (id ${c.class_id}, ${c.role_type}${c.valid_until ? ` until ${c.valid_until}` : ""})`).join("; ") || "none"}.`);
+    }
+    return lines.join("\n");
+  }
+
   return {
     hasProviders: () => providers.length > 0,
     async respond({
@@ -68,9 +87,10 @@ export function createAgent({
         actions.push(summarise(name, args, result));
         return result;
       };
+      const todayInfo = await today();
       const base = {
         instructions: stableInstructions(role),
-        context: contextBlock({ today: await today(), user, recentActions }),
+        context: contextBlock({ today: todayInfo, user, recentActions, liveFacts: await liveFacts(role, token, todayInfo?.date) }),
         history,
         userText: text,
         tools,

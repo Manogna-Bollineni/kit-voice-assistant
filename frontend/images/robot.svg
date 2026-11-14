@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="KIT assistant">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="45%" r="55%">
+      <stop offset="0" stop-color="#1c93a4" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#1c93a4" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="head" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e2eff1"/>
+    </linearGradient>
+    <linearGradient id="visor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#15303a"/>
+      <stop offset="1" stop-color="#0a4753"/>
+    </linearGradient>
+  </defs>
+  <circle cx="80" cy="78" r="76" fill="url(#glow)"/>
+  <line x1="80" y1="22" x2="80" y2="34" stroke="#0e5c6b" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="80" cy="18" r="7" fill="#f5821f"/>
+  <rect x="22" y="58" width="14" height="34" rx="7" fill="#f5821f"/>
+  <rect x="124" y="58" width="14" height="34" rx="7" fill="#f5821f"/>
+  <rect x="32" y="34" width="96" height="82" rx="34" fill="url(#head)" stroke="#0e5c6b" stroke-opacity="0.18" stroke-width="2"/>
+  <rect x="44" y="52" width="72" height="42" rx="21" fill="url(#visor)"/>
+  <ellipse cx="66" cy="73" rx="8" ry="9" fill="#4fd3e3"/>
+  <ellipse cx="94" cy="73" rx="8" ry="9" fill="#4fd3e3"/>
+  <ellipse cx="68" cy="70" rx="2.5" ry="3" fill="#ffffff" opacity="0.8"/>
+  <ellipse cx="96" cy="70" rx="2.5" ry="3" fill="#ffffff" opacity="0.8"/>
+  <path d="M70 104c6 4 14 4 20 0" stroke="#0e5c6b" stroke-width="3" fill="none" stroke-linecap="round" opacity="0.5"/>
+  <rect x="58" y="118" width="44" height="26" rx="13" fill="url(#head)" stroke="#0e5c6b" stroke-opacity="0.18" stroke-width="2"/>
+  <circle cx="80" cy="131" r="5" fill="#1c93a4"/>
+</svg>

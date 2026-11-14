@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-label="KIT campus illustration">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#dff0f3"/>
+      <stop offset="1" stop-color="#f2f7f8"/>
+    </linearGradient>
+    <linearGradient id="main" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0e5c6b"/>
+      <stop offset="1" stop-color="#0a4753"/>
+    </linearGradient>
+    <linearGradient id="side" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1c93a4"/>
+      <stop offset="1" stop-color="#0f7c90"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#bfe6ec"/>
+      <stop offset="1" stop-color="#7ccad6"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" fill="url(#sky)"/>
+  <circle cx="540" cy="80" r="42" fill="#f5821f" opacity="0.18"/>
+  <g fill="#ffffff" opacity="0.8">
+    <ellipse cx="140" cy="70" rx="48" ry="14"/>
+    <ellipse cx="420" cy="52" rx="38" ry="11"/>
+  </g>
+  <!-- side wing -->
+  <rect x="70" y="190" width="170" height="170" fill="url(#side)"/>
+  <g fill="url(#glass)">
+    <rect x="86" y="208" width="26" height="30" rx="3"/><rect x="122" y="208" width="26" height="30" rx="3"/><rect x="158" y="208" width="26" height="30" rx="3"/><rect x="194" y="208" width="26" height="30" rx="3"/>
+    <rect x="86" y="252" width="26" height="30" rx="3"/><rect x="122" y="252" width="26" height="30" rx="3"/><rect x="158" y="252" width="26" height="30" rx="3"/><rect x="194" y="252" width="26" height="30" rx="3"/>
+    <rect x="86" y="296" width="26" height="30" rx="3"/><rect x="122" y="296" width="26" height="30" rx="3"/><rect x="158" y="296" width="26" height="30" rx="3"/><rect x="194" y="296" width="26" height="30" rx="3"/>
+  </g>
+  <!-- main tower -->
+  <rect x="230" y="110" width="250" height="250" fill="url(#main)"/>
+  <rect x="230" y="110" width="250" height="14" fill="#f5821f"/>
+  <g fill="url(#glass)" opacity="0.95">
+    <rect x="250" y="142" width="40" height="44" rx="3"/><rect x="302" y="142" width="40" height="44" rx="3"/><rect x="354" y="142" width="40" height="44" rx="3"/>
+    <rect x="250" y="200" width="40" height="44" rx="3"/><rect x="302" y="200" width="40" height="44" rx="3"/><rect x="354" y="200" width="40" height="44" rx="3"/>
+    <rect x="250" y="258" width="40" height="44" rx="3"/><rect x="302" y="258" width="40" height="44" rx="3"/><rect x="354" y="258" width="40" height="44" rx="3"/>
+  </g>
+  <rect x="408" y="142" width="56" height="160" rx="4" fill="#ffffff" opacity="0.1"/>
+  <text x="436" y="236" text-anchor="middle" font-family="Sora, Arial, sans-serif" font-weight="700" font-size="30" fill="#ffffff" transform="rotate(-90 436 228)">KIT</text>
+  <rect x="318" y="316" width="74" height="44" fill="#15303a"/>
+  <rect x="300" y="308" width="110" height="10" fill="#f5821f"/>
+  <!-- right block -->
+  <rect x="470" y="220" width="110" height="140" fill="#0f7c90"/>
+  <g fill="url(#glass)">
+    <rect x="486" y="238" width="22" height="26" rx="3"/><rect x="516" y="238" width="22" height="26" rx="3"/><rect x="546" y="238" width="22" height="26" rx="3"/>
+    <rect x="486" y="278" width="22" height="26" rx="3"/><rect x="516" y="278" width="22" height="26" rx="3"/><rect x="546" y="278" width="22" height="26" rx="3"/>
+    <rect x="486" y="318" width="22" height="26" rx="3"/><rect x="516" y="318" width="22" height="26" rx="3"/><rect x="546" y="318" width="22" height="26" rx="3"/>
+  </g>
+  <!-- ground and trees -->
+  <rect x="0" y="356" width="640" height="64" fill="#cfe3e7"/>
+  <path d="M0 380 Q 320 360 640 384 V420 H0Z" fill="#b9d8dd"/>
+  <g>
+    <rect x="38" y="318" width="6" height="40" fill="#0a4753"/><circle cx="41" cy="310" r="24" fill="#2e8f7a"/>
+    <rect x="600" y="322" width="6" height="36" fill="#0a4753"/><circle cx="603" cy="314" r="22" fill="#2e8f7a"/>
+    <rect x="262" y="336" width="5" height="24" fill="#0a4753"/><circle cx="264" cy="330" r="14" fill="#3aa58b"/>
+    <rect x="446" y="336" width="5" height="24" fill="#0a4753"/><circle cx="448" cy="330" r="14" fill="#3aa58b"/>
+  </g>
+</svg>

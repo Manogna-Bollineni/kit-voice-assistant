@@ -35,11 +35,14 @@ New → Blueprint → this repo (`render.yaml` creates the app + Postgres). Set 
 
 ## Layout
 ```
-frontend/  pages/ (html + page js)  components/ (voiceAssistant, micButton, conversation)  services/api.js  styles/
+frontend/  pages/ (html + page js)  components/ (voiceAssistant, micButton, conversation, icons)
+           services/ (api, layout, theme)  styles/  images/ (robot, campus)
+scripts/build-icons.mjs  generates components/icons.js from lucide (npm run icons)
 backend/   main.js  app.js (routes)  config.js
            auth/security.js         sessions, cookies
            agent/                   orchestrator, prompts, tools, llm/{claude, openaiCompat}
            voice/stt.js             speech-to-text failover
+           routes/portal.js         overview card + teacher approve/reject buttons
            services/                collegeApi, history
            knowledge/               pdfLoader, rag (live docs, edition selection, excerpts)
            database/db.js           Postgres | SQLite

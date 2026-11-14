@@ -1,50 +1,83 @@
-import { api, el, renderNav } from '../services/api.js';
+import { api, el, currentUser, formatDate } from '../services/api.js';
+import { mountPublic, mountShell } from '../services/layout.js';
+import { icon } from '../components/icons.js';
 
-const user = await renderNav();
-document.getElementById('scope').textContent = user ? `Conversations for ${user.full_name}` : 'Conversations from this browser. Log in to see your account history.';
+const user = await currentUser();
+const content = user ? mountShell(user, { active: 'history' }) : mountPublic(null, 'history');
 
-const list = document.getElementById('list');
-const detail = document.getElementById('detail');
-const when = (iso) => new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+const TAGS = [
+  [/attendance|absent|bunk|percent/i, 'Attendance'],
+  [/on.?duty|\bod\b|leave|cancel/i, 'Leave & OD'],
+  [/placement|drive|zoho|tcs|freshworks|register/i, 'Placements'],
+  [/exam|timetable|subject|dbms|normali|assessment|cgpa/i, 'Academics'],
+  [/admission|apply|fee|course|eligib|document|scholarship|hostel/i, 'Admissions'],
+  [/approve|reject|pending|request/i, 'Requests'],
+];
+const tagFor = (title) => TAGS.find(([re]) => re.test(title))?.[1] ?? 'General';
 
-async function open(id, button) {
-  list.querySelectorAll('button').forEach((b) => b.removeAttribute('aria-current'));
-  button.setAttribute('aria-current', 'true');
-  detail.replaceChildren(el('p', { class: 'empty' }, 'Loading…'));
+const search = el('input', { type: 'search', placeholder: 'Search conversations…', 'aria-label': 'Search conversations' });
+const list = el('div', { class: 'history-list' }, el('p', { class: 'empty' }, 'Loading…'));
+content.append(
+  el(
+    'div',
+    { class: 'card pad history-card' },
+    el(
+      'div',
+      { class: 'card-head' },
+      el('div', {}, el('h1', {}, 'Conversation history'), el('p', { class: 'muted' }, user ? `Your conversations, ${user.full_name}` : 'Conversations from this browser. Log in to see your account history.')),
+      el('label', { class: 'field search' }, icon('search', 18), search),
+    ),
+    list,
+  ),
+);
+
+async function toggle(row, c) {
+  const open = row.nextElementSibling?.classList.contains('transcript');
+  list.querySelectorAll('.transcript').forEach((t) => t.remove());
+  list.querySelectorAll('.history-row').forEach((r) => r.setAttribute('aria-expanded', 'false'));
+  if (open) return;
+  row.setAttribute('aria-expanded', 'true');
+  const box = el('div', { class: 'transcript' }, el('p', { class: 'muted' }, 'Loading…'));
+  row.after(box);
   try {
-    const { conversation, messages } = await api(`/api/history/${encodeURIComponent(id)}`);
-    detail.replaceChildren(
-      el('h2', {}, conversation.title),
+    const { messages } = await api(`/api/history/${encodeURIComponent(c.id)}`);
+    box.replaceChildren(
       ...messages.map((m) => {
-        const done = m.actions.filter((a) => a.ok).map((a) => a.name.replaceAll('_', ' '));
-        return el(
-          'div',
-          { class: `msg ${m.role}` },
-          el('span', { class: 'who' }, `${m.role === 'user' ? 'You' : 'Assistant'} · ${when(m.createdAt)}`),
-          el('p', {}, m.text),
-          ...(done.length && m.role === 'assistant' ? [el('small', {}, `✓ ${done.join(', ')}`)] : []),
-        );
+        const done = (m.actions ?? []).filter((a) => a.ok).map((a) => a.name.replaceAll('_', ' '));
+        return el('div', { class: `t-msg ${m.role}` }, el('small', {}, `${m.role === 'user' ? 'You' : 'Assistant'} · ${formatDate(m.createdAt, true)}`), el('p', {}, m.text), done.length && m.role === 'assistant' ? el('small', { class: 'done' }, `✓ ${done.join(', ')}`) : null);
       }),
     );
   } catch (err) {
-    detail.replaceChildren(el('p', { class: 'error' }, err.message));
+    box.replaceChildren(el('p', { class: 'error' }, err.message));
   }
 }
 
+let all = [];
+function render() {
+  const q = search.value.trim().toLowerCase();
+  const rows = all.filter((c) => !q || c.title.toLowerCase().includes(q) || tagFor(c.title).toLowerCase().includes(q));
+  if (!rows.length) return list.replaceChildren(el('p', { class: 'empty' }, all.length ? 'No conversations match your search.' : 'No conversations yet. Talk to the assistant and they will appear here.'));
+  list.replaceChildren(
+    ...rows.map((c) => {
+      const row = el(
+        'button',
+        { type: 'button', class: 'history-row', 'aria-expanded': 'false' },
+        el('span', { class: 'row-icon' }, icon('mic', 18)),
+        el('span', { class: 'row-title' }, c.title),
+        el('span', { class: 'row-date' }, formatDate(c.updatedAt, true)),
+        el('span', { class: 'tag' }, tagFor(c.title)),
+        el('span', { class: 'row-go' }, icon('play', 14)),
+      );
+      row.addEventListener('click', () => toggle(row, c));
+      return row;
+    }),
+  );
+}
+
+search.addEventListener('input', render);
 try {
-  const { conversations } = await api('/api/history');
-  if (!conversations.length) {
-    list.replaceChildren(el('li', { class: 'empty' }, 'No conversations yet.'));
-  } else {
-    list.replaceChildren(
-      ...conversations.map((c) => {
-        const b = el('button', { type: 'button' }, el('strong', {}, c.title), el('small', {}, `${c.mode === 'public' ? 'Public' : 'Logged in'} · ${c.messageCount} messages · ${when(c.updatedAt)}`));
-        b.addEventListener('click', () => open(c.id, b));
-        return el('li', {}, b);
-      }),
-    );
-    list.querySelector('button')?.click();
-  }
+  all = (await api('/api/history')).conversations;
+  render();
 } catch (err) {
-  list.replaceChildren(el('li', { class: 'error' }, `Could not load history: ${err.message}`));
+  list.replaceChildren(el('p', { class: 'error' }, `Could not load history: ${err.message}`));
 }

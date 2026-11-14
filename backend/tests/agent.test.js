@@ -87,3 +87,19 @@ test('speech-to-text falls back to the next service', async () => {
   const none = createTranscriber([{ name: 'groq', transcribe: async () => { throw new Error('x'); } }], silentLogger);
   await assert.rejects(none.transcribe(Buffer.alloc(1), 'audio/webm'), SttUnavailableError);
 });
+
+test('logged-in context includes the live calendar so rescheduled dates win over circular text', async () => {
+  let context;
+  const provider = { name: 'claude', run: async (p) => ((context = p.context), { text: 'ok' }) };
+  const liveKit = {
+    get: async (path) =>
+      path === '/v1/today'
+        ? { date: '2026-11-21', weekday_name: 'Saturday', timezone: 'Asia/Kolkata' }
+        : [{ date: '2026-11-25', type: 'internal_exam', title: 'DBMS Internal Assessment Exam (Rescheduled)', subject_code: 'CS304', status: 'active' }],
+  };
+  const agent = createAgent({ providers: [provider], knowledge, kit: liveKit, logger: silentLogger });
+  await agent.respond({ role: 'student', user: { login_id: 'arjun', full_name: 'Arjun K', role: 'student', programme: 'UG' }, token: 't', text: 'When is my DBMS exam?' });
+  assert.match(context, /2026-11-25 internal_exam: DBMS Internal Assessment Exam \(Rescheduled\) \[CS304\]/);
+  await agent.respond({ role: 'public', text: 'hi' });
+  assert.doesNotMatch(context, /Upcoming calendar/, 'public visitors get no student calendar');
+});
