@@ -102,3 +102,8 @@ a.quick-btn { text-decoration: none; box-sizing: border-box; }
 body.portal-fit .side-col { overflow-y: auto; }
 body.portal-fit .recent { min-height: 170px; }
 body.portal-fit .side-col #approvals { min-height: 220px; }
+/* Grid children may shrink below their content width, so phones never scroll sideways. */
+.home-grid > *, .hero > *, .landing-hero > * { min-width: 0; }
+.talk-card { max-width: 100%; box-sizing: border-box; }
+/* Teachers get a teacher prompt in the empty chat, not the student one. */
+body.role-teacher.portal-fit .va-hero.chat-empty .log::before { content: 'Ask about pending approvals, class attendance or college rules — by voice or text.'; }

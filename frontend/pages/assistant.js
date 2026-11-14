@@ -21,6 +21,7 @@ if (isTeacher && overview?.pendingCount) {
 if (!isTeacher && exam) notices.push({ icon: 'calendar', title: 'Next exam', detail: `${exam.title} · ${formatDate(exam.date)}`, href: askUrl(EXAM_PROMPT) });
 
 const content = mountShell(user, { active: 'home', notices });
+document.body.classList.add(isTeacher ? 'role-teacher' : 'role-student');
 // Fit-to-window layout only when there is room for it; smaller screens scroll normally so nothing gets clipped.
 const roomy = matchMedia('(min-width: 1001px) and (min-height: 700px)');
 const applyFit = () => document.body.classList.toggle('portal-fit', roomy.matches);
