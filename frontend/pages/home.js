@@ -1,5 +1,5 @@
 import { api, el, currentUser, rupees } from '../services/api.js';
-import { mountPublic } from '../services/layout.js';
+import { mountPublic, TAGLINE } from '../services/layout.js';
 import { mountAssistant } from '../components/voiceAssistant.js';
 import { icon } from '../components/icons.js';
 
@@ -9,7 +9,7 @@ const user = await currentUser();
 const main = mountPublic(user, 'home');
 
 // Landing: hero (text + campus art fading in) and a bottom strip with courses and "Talk to KIT".
-const tagline = el('p', { class: 'tagline' }, 'Excellence in Engineering and Applied Technology');
+const tagline = el('p', { class: 'tagline' }, TAGLINE);
 const intro = el('p', { class: 'lead' }, 'An autonomous engineering institution in Coimbatore, Tamil Nadu.');
 const courseRow = el('div', { class: 'course-row' }, el('p', { class: 'muted' }, 'Loading programmes…'));
 const talkCard = el(
@@ -93,7 +93,6 @@ window.addEventListener('hashchange', () => location.hash === '#talk' && drawer.
 
 try {
   const { college, courses } = await api('/api/public/home');
-  if (college?.tagline) tagline.textContent = college.tagline;
   if (college?.description) intro.textContent = college.description;
   courseRow.replaceChildren(
     ...(courses ?? []).map((k) =>

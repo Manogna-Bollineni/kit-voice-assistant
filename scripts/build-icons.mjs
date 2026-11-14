@@ -8,7 +8,7 @@ const MAP = {
   check: 'Check', close: 'X', users: 'UserCheck', inbox: 'Inbox', mic: 'Mic', stop: 'Square', sun: 'Sun',
   moon: 'Moon', search: 'Search', arrow: 'ArrowRight', back: 'ArrowLeft', cpu: 'Cpu', radio: 'Radio', gear: 'Cog',
   school: 'GraduationCap', eye: 'Eye', eyeOff: 'EyeOff', id: 'IdCard', lock: 'Lock', play: 'Play', bot: 'Bot',
-  volume: 'Volume2', spark: 'Sparkles', phone: 'Phone', mail: 'Mail', mapPin: 'MapPin', globe: 'Globe',
+  volume: 'Volume2', spark: 'Sparkles', phone: 'Phone', mail: 'Mail', mapPin: 'MapPin', globe: 'Globe', bell: 'Bell', user: 'UserRound',
 };
 
 const nodes = {};

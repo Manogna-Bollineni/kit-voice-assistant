@@ -1,5 +1,5 @@
 import { api, el, currentUser } from '../services/api.js';
-import { mountPublic } from '../services/layout.js';
+import { mountPublic, TAGLINE } from '../services/layout.js';
 import { icon } from '../components/icons.js';
 
 const user = await currentUser();
@@ -64,7 +64,7 @@ main.append(
     el(
       'div',
       { class: 'card login-card' },
-      el('div', { class: 'login-brand' }, el('span', { class: 'logo logo-lg' }, 'KIT'), el('strong', {}, 'Knotopian Institute of Technology')),
+      el('div', { class: 'login-brand' }, el('div', { class: 'brand-lockup' }, el('img', { class: 'mark', src: '/images/logo-mark.svg', alt: '' }), el('span', { class: 'wordmark' }, 'KIT')), el('strong', {}, 'Knotopian Institute of Technology'), el('span', { class: 'muted' }, TAGLINE)),
       el('h1', {}, 'Login to continue'),
       el('p', { class: 'muted' }, 'Access your personalised assistant and college services.'),
       form,

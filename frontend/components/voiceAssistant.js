@@ -24,15 +24,17 @@ function storageSet(key, value) {
  * Mounts the assistant into root. Options: mode ('public' | 'member'), greeting, suggestions, userInitials, compact.
  * Returns { ask(text) } so buttons elsewhere on the page can send a question.
  */
-export function mountAssistant(root, { mode, greeting, suggestions = [], userInitials, compact = false }) {
+export function mountAssistant(root, { mode, greeting, suggestions = [], userInitials, compact = false, layout = 'split' }) {
   const convKey = `kit_conv_${mode}`;
   let conversationId = storageGet(convKey);
   let busy = false;
 
-  const card = el('div', { class: `va-card ${compact ? 'compact' : ''}`, 'data-state': 'idle' });
+  const hero = layout === 'hero';
+  const card = el('div', { class: `va-card ${compact ? 'compact' : ''} ${hero ? 'va-hero chat-empty' : ''}`, 'data-state': 'idle' });
   const setState = (state) => (card.dataset.state = state);
-  const log = createConversation({ userInitials });
-  const status = el('p', { class: 'stage-status' }, 'Tap the mic and speak');
+  const conversation = createConversation({ userInitials });
+  const log = { ...conversation, add: (...a) => (card.classList.remove('chat-empty'), conversation.add(...a)) };
+  const status = el('p', { class: 'stage-status' }, hero ? 'Tap the mic to speak, or type below' : 'Tap the mic and speak');
   const setStatus = (text) => (status.textContent = text);
 
   function speak(text) {
@@ -80,7 +82,7 @@ export function mountAssistant(root, { mode, greeting, suggestions = [], userIni
   const chat = el('div', { class: 'chat' }, el('div', { class: 'chat-head' }, el('strong', {}, 'Conversation'), reset), log.element, tips, form);
   card.append(stage, chat);
   root.replaceChildren(card);
-  if (greeting) log.add('assistant', greeting);
+  if (greeting && !hero) log.add('assistant', greeting);
 
   function setBusy(value, message) {
     busy = value;
@@ -106,7 +108,7 @@ export function mountAssistant(root, { mode, greeting, suggestions = [], userIni
     if (kind === 'voice' && data.transcript) log.add('user', data.transcript);
     const reply = data.reply ?? data.error ?? 'Something went wrong. Please try again.';
     const done = (data.actions ?? []).filter((a) => a.write && a.ok).map((a) => a.name.replaceAll('_', ' '));
-    log.add('assistant', reply, done.length ? `✓ ${done.join(', ')}` : undefined);
+    log.add('assistant', reply, done.length ? `Done: ${done.join(', ')}` : undefined);
     setState('idle');
     speak(reply);
     setStatus(res.ok ? 'Tap the mic to reply' : 'Something went wrong — try again');
@@ -153,7 +155,8 @@ export function mountAssistant(root, { mode, greeting, suggestions = [], userIni
     conversationId = null;
     storageSet(convKey, null);
     log.clear();
-    if (greeting) log.add('assistant', greeting);
+    if (hero) card.classList.add('chat-empty');
+    else if (greeting) log.add('assistant', greeting);
     setStatus('New conversation started');
   });
 

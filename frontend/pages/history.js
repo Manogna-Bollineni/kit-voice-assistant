@@ -44,7 +44,7 @@ async function toggle(row, c) {
     box.replaceChildren(
       ...messages.map((m) => {
         const done = (m.actions ?? []).filter((a) => a.ok).map((a) => a.name.replaceAll('_', ' '));
-        return el('div', { class: `t-msg ${m.role}` }, el('small', {}, `${m.role === 'user' ? 'You' : 'Assistant'} · ${formatDate(m.createdAt, true)}`), el('p', {}, m.text), done.length && m.role === 'assistant' ? el('small', { class: 'done' }, `✓ ${done.join(', ')}`) : null);
+        return el('div', { class: `t-msg ${m.role}` }, el('small', {}, `${m.role === 'user' ? 'You' : 'Assistant'} · ${formatDate(m.createdAt, true)}`), el('p', {}, m.text), done.length && m.role === 'assistant' ? el('small', { class: 'done' }, `Done: ${done.join(', ')}`) : null);
       }),
     );
   } catch (err) {

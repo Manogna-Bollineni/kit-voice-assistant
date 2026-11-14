@@ -2,8 +2,17 @@
 import { api, el, initials } from './api.js';
 import { icon } from '../components/icons.js';
 
-function logo() {
-  return el('a', { class: 'brand', href: '/' }, el('span', { class: 'logo' }, 'KIT'), el('span', { class: 'brand-text' }, el('strong', {}, 'Knotopian Institute'), el('span', {}, 'of Technology')));
+export const TAGLINE = 'Innovate. Learn. Excel.';
+
+/** KIT brand: leaf mark + wordmark + full name. `light` uses the white mark for dark backgrounds. */
+export function logo({ light = false, href = '/' } = {}) {
+  return el(
+    'a',
+    { class: `brand${light ? ' brand-light' : ''}`, href },
+    el('img', { class: 'mark', src: '/images/logo-mark.svg', alt: '' }),
+    el('span', { class: 'wordmark' }, 'KIT'),
+    el('span', { class: 'brand-text' }, el('strong', {}, 'Knotopian Institute'), el('span', {}, 'of Technology')),
+  );
 }
 
 export function themeToggle() {
@@ -47,7 +56,7 @@ export function mountPublic(user, active = '') {
 /** Footer with live admissions contact details from the college system. */
 function siteFooter(user) {
   const contact = el('ul', { class: 'foot-list' }, el('li', { class: 'muted' }, 'Loading contact details…'));
-  const tagline = el('p', { class: 'foot-tagline' }, 'Excellence in Engineering and Applied Technology');
+  const tagline = el('p', { class: 'foot-tagline' }, TAGLINE);
   const link = (href, text) => el('li', {}, el('a', { href }, text));
   const footer = el(
     'footer',
@@ -55,7 +64,7 @@ function siteFooter(user) {
     el(
       'div',
       { class: 'foot-grid' },
-      el('div', { class: 'foot-brand' }, logo(), tagline),
+      el('div', { class: 'foot-brand' }, logo({ light: true }), tagline),
       el('div', {}, el('h3', {}, 'Admissions office'), contact),
       el('div', {}, el('h3', {}, 'Quick links'), el('ul', { class: 'foot-list' }, link('/#courses', 'Programmes'), link('/#talk', 'Talk to KIT'), link(user ? '/assistant' : '/login', user ? 'My portal' : 'Student / teacher login'), link('/history', 'Conversation history'))),
     ),
@@ -64,7 +73,6 @@ function siteFooter(user) {
 
   api('/api/public/home')
     .then(({ college }) => {
-      if (college?.tagline) tagline.textContent = college.tagline;
       const c = college?.contact;
       if (!c) throw new Error('no contact');
       const item = (iconName, child) => el('li', { class: 'foot-contact' }, icon(iconName, 16), child);
@@ -79,8 +87,34 @@ function siteFooter(user) {
   return footer;
 }
 
+/** Bell with a small popover. `notices` is a list of { icon, title, detail, href }. */
+function notificationsBell(notices = []) {
+  const button = el('button', { type: 'button', class: 'icon-btn bell', 'aria-label': `Notifications (${notices.length})`, 'aria-expanded': 'false', 'aria-haspopup': 'true' }, icon('bell', 18), notices.length ? el('span', { class: 'bell-dot' }) : null);
+  const list = el(
+    'div',
+    { class: 'popover', hidden: '' },
+    el('strong', { class: 'popover-title' }, 'Notifications'),
+    ...(notices.length
+      ? notices.map((n) => el('a', { class: 'notice', href: n.href ?? '#' }, el('span', { class: 'notice-icon' }, icon(n.icon, 16)), el('span', {}, el('strong', {}, n.title), el('small', {}, n.detail))))
+      : [el('p', { class: 'muted' }, 'You are all caught up.')]),
+  );
+  const wrap = el('div', { class: 'bell-wrap' }, button, list);
+  const close = () => {
+    list.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+  };
+  button.addEventListener('click', (e) => {
+    e.stopPropagation();
+    list.hidden = !list.hidden;
+    button.setAttribute('aria-expanded', String(!list.hidden));
+  });
+  document.addEventListener('click', (e) => !wrap.contains(e.target) && close());
+  document.addEventListener('keydown', (e) => e.key === 'Escape' && close());
+  return wrap;
+}
+
 /** Logged-in layout: sidebar + top bar. `actions` are sidebar shortcuts that ask the assistant. Returns the content element. */
-export function mountShell(user, { active = 'home', badge = 0 } = {}) {
+export function mountShell(user, { active = 'home', badge = 0, notices = [] } = {}) {
   const item = (key, label, iconName, href, count) =>
     el('a', { class: 'side-link', href, 'aria-current': active === key ? 'page' : null }, icon(iconName, 18), el('span', {}, label), count ? el('span', { class: 'count' }, String(count)) : null);
   const ask = (text) => `/assistant?ask=${encodeURIComponent(text)}`;
@@ -92,6 +126,7 @@ export function mountShell(user, { active = 'home', badge = 0 } = {}) {
           item('approvals', 'Pending approvals', 'users', '/assistant#approvals', badge),
           item('classes', 'Class attendance', 'chart', ask('Show attendance for my class')),
           item('history', 'History', 'history', '/history'),
+          item('profile', 'Profile', 'user', ask('Show my profile details')),
         ]
       : [
           item('home', 'Home', 'home', '/assistant'),
@@ -100,20 +135,21 @@ export function mountShell(user, { active = 'home', badge = 0 } = {}) {
           item('od', 'On-duty request', 'flag', ask('I want to apply for on-duty')),
           item('placements', 'Placements', 'briefcase', ask('Which placement drives can I join?')),
           item('timetable', 'Timetable', 'clock', ask("What is today's timetable?")),
+          item('profile', 'Profile', 'user', ask('Show my profile details')),
         ];
 
   const out = el('button', { type: 'button', class: 'side-link' }, icon('logout', 18), el('span', {}, 'Logout'));
   out.addEventListener('click', logout);
 
-  const sidebar = el('aside', { class: 'sidebar' }, el('a', { class: 'side-brand', href: '/assistant' }, el('span', { class: 'logo' }, 'KIT'), el('span', {}, 'Knotopian')), el('nav', { class: 'side-nav', 'aria-label': 'Portal' }, ...links), el('div', { class: 'side-foot' }, out));
+  const sidebar = el('aside', { class: 'sidebar' }, el('a', { class: 'side-brand', href: '/assistant' }, el('img', { class: 'mark', src: '/images/logo-mark.svg', alt: '' }), el('span', { class: 'wordmark' }, 'KIT')), el('nav', { class: 'side-nav', 'aria-label': 'Portal' }, ...links), el('div', { class: 'side-foot' }, out));
 
   const who =
     user.role === 'teacher' ? `Faculty · ${user.department ?? ''}` : `Student · ${[user.department, user.class_code].filter(Boolean).join(' · ')}`;
   const topbar = el(
     'header',
     { class: 'topbar' },
-    el('a', { class: 'brand mobile-only', href: '/assistant' }, el('span', { class: 'logo' }, 'KIT')),
-    el('div', { class: 'topbar-right' }, themeToggle(), el('div', { class: 'user-chip' }, el('span', { class: 'avatar' }, initials(user.full_name)), el('span', {}, el('strong', {}, user.full_name), el('small', {}, who)))),
+    el('a', { class: 'brand mobile-only', href: '/assistant' }, el('img', { class: 'mark', src: '/images/logo-mark.svg', alt: 'KIT' })),
+    el('div', { class: 'topbar-right' }, themeToggle(), notificationsBell(notices), el('div', { class: 'user-chip' }, el('span', { class: 'avatar' }, initials(user.full_name)), el('span', {}, el('strong', {}, user.full_name), el('small', {}, who)))),
   );
   const content = el('main', { class: 'content' });
   document.getElementById('app').replaceChildren(el('div', { class: 'app' }, sidebar, el('div', { class: 'app-main' }, topbar, content)));

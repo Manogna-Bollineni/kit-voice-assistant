@@ -10,38 +10,61 @@ if (!user) {
 }
 const isTeacher = user.role === 'teacher';
 const overview = await api('/api/overview').catch(() => null);
-const content = mountShell(user, { active: 'home', badge: overview?.pendingCount ?? 0 });
+const exam = overview?.nextExam ?? null; // used for the bell notification only
+const askUrl = (text) => `/assistant?ask=${encodeURIComponent(text)}`;
+const EXAM_PROMPT = 'When is my next exam, and what should I know about it?';
+
+const notices = [];
+if (isTeacher && overview?.pendingCount) {
+  notices.push({ icon: 'users', title: `${overview.pendingCount} pending request${overview.pendingCount > 1 ? 's' : ''}`, detail: 'Waiting for your decision', href: '#approvals' });
+}
+if (!isTeacher && exam) notices.push({ icon: 'calendar', title: 'Next exam', detail: `${exam.title} · ${formatDate(exam.date)}`, href: askUrl(EXAM_PROMPT) });
+
+const content = mountShell(user, { active: 'home', badge: overview?.pendingCount ?? 0, notices });
+document.body.classList.add('portal-fit');
 
 const QUICK = isTeacher
   ? [
-      ['inbox', 'Pending requests', 'Do I have any pending requests?'],
-      ['users', 'My classes', 'Which classes can I act on?'],
-      ['chart', 'Class attendance', 'Who in my class is below 75% attendance?'],
-      ['book', 'Leave rules', 'What are the rules for approving on-duty?'],
+      ['users', 'Pending requests', 'Do I have any pending requests?'],
+      ['book', 'My classes', 'Which classes can I act on?'],
+      ['flag', 'On-duty rules', 'What are the rules for approving on-duty?'],
     ]
   : [
-      ['chart', 'Check attendance', 'What is my attendance?'],
-      ['leave', 'Request leave', 'I want to apply for leave'],
-      ['flag', 'Apply on-duty', 'I want to apply for on-duty'],
-      ['briefcase', 'Placement drives', 'Which placement drives can I join?'],
-      ['clock', 'View timetable', "What is today's timetable?"],
-      ['book', 'Ask a subject doubt', 'Explain normalization in DBMS simply'],
+      ['calendar', 'View timetable', "What is today's timetable?"],
+      ['clock', 'Next exam', EXAM_PROMPT],
+      ['briefcase', 'Apply for placement', 'Which placement drives can I join?'],
+      ['book', 'Ask subject doubt', 'Explain normalization in DBMS simply'],
+      ['history', 'My requests', 'Show my leave and on-duty requests'],
     ];
 
-const assistantRoot = el('div');
+// The services the brief lists for logged-in users, scoped to this person only.
+const SERVICES = isTeacher
+  ? [
+      ['users', 'Approvals', 'Leave & on-duty decisions', 'Do I have any pending requests?'],
+      ['chart', 'Class attendance', 'Your authorised classes', 'Who in my class is below 75% attendance?'],
+      ['book', 'College rules', 'Handbook & circulars', 'What are the rules for approving leave?'],
+      ['flag', 'Delegations', 'Classes you can act on', 'Which classes can I approve requests for today?'],
+    ]
+  : [
+      ['chart', 'Attendance', 'Per subject, as of today', 'What is my attendance in each subject?'],
+      ['book', 'College rules', 'Handbook & circulars', 'What are the attendance and leave rules for me?'],
+      ['leave', 'Leave request', 'Personal, medical, half-day', 'I want to apply for leave'],
+      ['flag', 'On-duty request', 'Events & competitions', 'I want to apply for on-duty'],
+    ];
+
+const assistantRoot = el('div', { class: 'hero-col' });
 const quick = el('div', { class: 'card pad quick' }, el('h2', {}, 'Quick actions'));
-const side = el('div', { class: 'side-col' }, quick);
+const side = el('div', { class: `side-col ${isTeacher ? 'teacher' : ''}` }, quick);
 content.append(
   el('div', { class: 'greeting' }, el('h1', {}, `Hello ${firstName(user.full_name)}!`), el('p', { class: 'muted' }, 'How can I help you today?')),
-  el('div', { class: 'home-grid' }, assistantRoot, side),
+  el('div', { class: `home-grid ${isTeacher ? 'teacher' : ''}` }, assistantRoot, side),
 );
 
 const assistant = mountAssistant(assistantRoot, {
   mode: 'member',
+  layout: 'hero',
   userInitials: initials(user.full_name),
-  greeting: isTeacher
-    ? `Hello ${firstName(user.full_name)}! I can review and decide leave and on-duty requests, and check class attendance.`
-    : `Hi ${firstName(user.full_name)}! Ask me about attendance, timetable, leave or on-duty, placements, rules or a subject doubt.`,
+  suggestions: isTeacher ? ['Any pending requests?', 'Show my classes'] : ['What is my attendance?', 'Can I take leave tomorrow?', 'When is my next exam?'],
 });
 
 for (const [iconName, label, prompt] of QUICK) {
@@ -50,32 +73,42 @@ for (const [iconName, label, prompt] of QUICK) {
   quick.append(b);
 }
 
-if (!isTeacher) {
-  const exam = overview?.nextExam;
-  side.append(
-    el(
-      'div',
-      { class: 'card pad info-card' },
-      el('span', { class: 'info-icon' }, icon('calendar', 22)),
-      el('div', {}, el('small', { class: 'muted' }, 'Next exam'), el('strong', {}, exam ? exam.title : 'No exams scheduled'), exam ? el('span', { class: 'muted' }, formatDate(exam.date)) : null),
-    ),
-  );
-  if (typeof overview?.attendance === 'number') {
-    const pct = overview.attendance;
-    side.append(
-      el(
-        'div',
-        { class: `card pad info-card ${pct < 75 ? 'warn' : ''}` },
-        el('span', { class: 'info-icon' }, icon('chart', 22)),
-        el('div', {}, el('small', { class: 'muted' }, 'Overall attendance'), el('strong', {}, `${pct}%`), el('span', { class: 'muted' }, pct < 75 ? 'Below the 75% minimum' : 'Minimum is 75% per course')),
-      ),
+const tiles = el('div', { class: 'service-tiles' });
+for (const [iconName, label, sub, prompt] of SERVICES) {
+  const t = el('button', { type: 'button', class: 'service' }, el('span', { class: 'service-icon' }, icon(iconName, 20)), el('span', {}, el('strong', {}, label), el('small', {}, sub)));
+  t.addEventListener('click', () => assistant.ask(prompt));
+  tiles.append(t);
+}
+content.append(
+  el(
+    'section',
+    { class: 'card services' },
+    el('div', { class: 'services-head' }, el('strong', {}, isTeacher ? 'Teacher services' : 'Student services')),
+    tiles,
+  ),
+);
+if (isTeacher) side.append(await approvalsPanel());
+else side.append(await recentPanel());
+
+/** Latest conversations, filling the space under Quick actions. */
+async function recentPanel() {
+  const list = el('div', { class: 'recent-list' }, el('p', { class: 'muted' }, 'Loading…'));
+  const panel = el('section', { class: 'card pad recent' }, el('div', { class: 'card-head' }, el('h2', {}, 'Recent conversations'), el('a', { class: 'link', href: '/history' }, 'View all')), list);
+  try {
+    const { conversations } = await api('/api/history');
+    const items = conversations.filter((c) => c.mode === 'member').slice(0, 6);
+    list.replaceChildren(
+      ...(items.length
+        ? items.map((c) => el('a', { class: 'recent-item', href: '/history' }, el('span', { class: 'row-icon' }, icon('mic', 16)), el('span', { class: 'recent-text' }, el('strong', {}, c.title), el('small', {}, formatDate(c.updatedAt, true)))))
+        : [el('p', { class: 'empty' }, 'Your conversations will appear here.')]),
     );
+  } catch {
+    list.replaceChildren(el('p', { class: 'muted' }, 'History is unavailable right now.'));
   }
-} else {
-  content.append(await approvalsPanel());
+  return panel;
 }
 
-// Sidebar shortcuts land here with ?ask=…; send it once, then clean the URL.
+// Sidebar shortcuts and notifications land here with ?ask=…; send it once, then clean the URL.
 const asked = new URLSearchParams(location.search).get('ask');
 if (asked) {
   history.replaceState(null, '', '/assistant');
@@ -88,7 +121,7 @@ async function approvalsPanel() {
   const TYPE = { on_duty: ['On-duty request', 'flag'], personal_leave: ['Leave request', 'leave'], medical_leave: ['Medical leave', 'leave'] };
 
   function row(r) {
-    const [label, iconName] = TYPE[r.type] ?? [r.type, 'inbox'];
+    const [label, iconName] = TYPE[r.type] ?? [r.type, 'users'];
     const dates = r.from_date === r.to_date ? formatDate(r.from_date) : `${formatDate(r.from_date)} – ${formatDate(r.to_date)}`;
     const actions = el('div', { class: 'row-actions' });
     const approve = el('button', { type: 'button', class: 'btn btn-sm' }, 'Approve');
