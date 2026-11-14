@@ -22,7 +22,9 @@ export function createAgent({
   kit,
   logger = console,
   todayTtlMs = 60000,
+  cooldownMs = 30000,
 }) {
+  const coolingUntil = new Map(); // provider name -> time; rate-limited providers are skipped for a while instead of retried every turn
   let todayCache = { value: null, at: 0 };
   const factsCache = new Map(); // per session token: live calendar/classes change rarely, so reuse them for a minute
 
@@ -115,7 +117,8 @@ export function createAgent({
       };
 
       const failures = [];
-      for (const provider of providers) {
+      const ready = providers.filter((p) => (coolingUntil.get(p.name) ?? 0) <= Date.now());
+      for (const provider of ready.length ? ready : providers) {
         const started = Date.now();
         try {
           const recentUserText = history
@@ -136,6 +139,7 @@ export function createAgent({
             `[agent] ${provider.name} failed after ${Date.now() - started}ms: ${err.message}`,
           );
           failures.push(provider.name);
+          if (/rate limit|\b429\b/i.test(err.message)) coolingUntil.set(provider.name, Date.now() + cooldownMs);
         }
       }
       throw new AgentUnavailableError(

@@ -156,3 +156,19 @@ test('reads after a write in the same turn are fetched fresh, not reused', async
   await agent.respond({ role: 'student', user: { login_id: 'arjun' }, token: 't', text: 'yes, cancel it' });
   assert.equal(listCalls, 2);
 });
+
+test('a rate-limited provider is skipped on the next turn, and used again when all are cooling down', async () => {
+  let primaryCalls = 0;
+  const primary = { name: 'big', run: async () => { primaryCalls++; throw new Error('big rate limited'); } };
+  const backup = { name: 'small', run: async () => ({ text: 'ok' }) };
+  const agent = createAgent({ providers: [primary, backup], knowledge, kit, logger: silentLogger });
+  await agent.respond({ role: 'public', text: 'hi' });
+  const second = await agent.respond({ role: 'public', text: 'hi again' });
+  assert.equal(primaryCalls, 1, 'primary skipped while cooling down');
+  assert.equal(second.provider, 'small');
+
+  const lone = createAgent({ providers: [primary], knowledge, kit, logger: silentLogger });
+  await assert.rejects(lone.respond({ role: 'public', text: 'a' }), AgentUnavailableError);
+  await assert.rejects(lone.respond({ role: 'public', text: 'b' }), AgentUnavailableError);
+  assert.equal(primaryCalls, 3, 'with every provider cooling down, it still tries rather than refusing');
+});
