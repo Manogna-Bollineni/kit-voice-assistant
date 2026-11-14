@@ -1,0 +1,117 @@
+/* Logged-in home: hero assistant, bell, services strip, recent list, fit-to-window. */
+/* Logged-in home: hero assistant (stage on top, chat appears below once you talk) */
+.home-grid { grid-template-columns: minmax(0, 1fr) 320px; }
+.va-hero { grid-template-columns: 1fr; grid-template-rows: auto auto; min-height: 0; }
+.va-hero .stage { border-right: 0; padding: 36px 24px 26px; gap: 18px; background: radial-gradient(60% 70% at 50% 30%, var(--bg-tint), var(--surface) 75%); }
+.va-hero .robot-wrap { width: 200px; height: 200px; background: radial-gradient(circle, var(--surface) 55%, var(--brand-soft) 100%); box-shadow: 0 0 0 14px color-mix(in srgb, var(--brand-soft) 60%, transparent), 0 16px 40px rgba(14, 92, 107, 0.12); }
+.va-hero .robot { width: 168px; height: 168px; }
+.va-hero .wave { width: min(360px, 90%); justify-content: space-between; height: 40px; }
+.va-hero .wave i { width: 4px; }
+.va-hero .talk { width: 84px; height: 84px; }
+.va-hero .talk .icon { width: 32px; height: 32px; }
+.va-hero .stage-status { font-size: 14px; }
+.va-hero .chat { border-top: 1px solid var(--line); }
+.va-hero .log { max-height: 380px; min-height: 160px; }
+.va-hero.chat-empty .chat-head, .va-hero.chat-empty .log { display: none; }
+.va-hero.chat-empty .chat { border-top: 0; }
+.va-hero.chat-empty .chips { padding-top: 0; justify-content: center; }
+
+/* Bottom row: next exam + attendance */
+
+/* Notifications bell */
+.bell-wrap { position: relative; }
+.bell { position: relative; }
+.bell-dot { position: absolute; top: 7px; right: 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface); }
+.popover { position: absolute; right: 0; top: calc(100% + 10px); z-index: 30; width: 300px; padding: 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 16px 40px rgba(10, 30, 36, 0.18); display: flex; flex-direction: column; gap: 6px; }
+.popover[hidden] { display: none; }
+.popover-title { font-size: 13px; padding: 2px 6px 6px; }
+.popover .muted { margin: 0; padding: 6px; font-size: 13px; }
+.notice { display: flex; gap: 10px; align-items: flex-start; padding: 8px; border-radius: 10px; text-decoration: none; color: var(--text); }
+.notice:hover { background: var(--surface-2); }
+.notice strong { display: block; font-size: 13px; }
+.notice small { display: block; color: var(--muted); font-size: 12px; }
+.notice-icon { width: 30px; height: 30px; flex: none; border-radius: 9px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-strong); }
+
+@media (max-width: 1000px) {
+}
+@media (max-width: 820px) {
+  .va-hero .robot-wrap { width: 140px; height: 140px; }
+  .va-hero .robot { width: 118px; height: 118px; }
+  .popover { position: fixed; left: 12px; right: 12px; top: 64px; width: auto; }
+}
+/* Idle waveform looks like a voice print; it animates while listening or speaking. */
+.va-hero .wave i { height: 8px; opacity: 0.55; }
+.va-hero .wave i:nth-child(3n) { height: 18px; }
+.va-hero .wave i:nth-child(4n) { height: 26px; }
+.va-hero .wave i:nth-child(5n + 2) { height: 14px; }
+.va-hero .wave i:nth-child(7n) { height: 32px; }
+.va-hero .wave i:nth-child(11n) { height: 22px; }
+
+/* Logged-in home fits the window: no page scroll; sizes scale with viewport height; only the chat scrolls. */
+@media (min-width: 821px) {
+  body.portal-fit .app { height: 100vh; min-height: 0; }
+  body.portal-fit .app-main { height: 100vh; overflow: hidden; }
+  body.portal-fit .sidebar { height: 100vh; }
+  body.portal-fit .topbar { padding-top: clamp(8px, 1.4vh, 14px); padding-bottom: clamp(8px, 1.4vh, 14px); }
+  body.portal-fit .content { flex: 1; min-height: 0; max-width: none; gap: clamp(10px, 1.8vh, 20px); padding-top: clamp(12px, 2.2vh, 26px); padding-bottom: clamp(12px, 2.2vh, 24px); }
+  body.portal-fit .greeting h1 { font-size: clamp(1.35rem, 3.6vh, 2.3rem); margin: 0; }
+  body.portal-fit .greeting p { margin: 2px 0 0; font-size: clamp(13px, 1.8vh, 15px); }
+  body.portal-fit .home-grid { flex: 1; min-height: 0; align-items: stretch; }
+  body.portal-fit .home-grid.teacher { grid-template-columns: minmax(0, 1fr) minmax(360px, 34%); }
+  body.portal-fit .hero-col { display: flex; min-height: 0; }
+  body.portal-fit .va-hero { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  body.portal-fit .va-hero .stage { flex: 1 1 auto; min-height: 0; justify-content: center; padding: clamp(10px, 2.2vh, 32px) 20px; gap: clamp(6px, 1.5vh, 18px); }
+  body.portal-fit .va-hero .robot-wrap { width: clamp(84px, 21vh, 200px); height: clamp(84px, 21vh, 200px); box-shadow: 0 0 0 clamp(6px, 1.3vh, 14px) color-mix(in srgb, var(--brand-soft) 60%, transparent); }
+  body.portal-fit .va-hero .robot { width: 84%; height: 84%; }
+  body.portal-fit .va-hero .wave { height: clamp(18px, 3.8vh, 40px); }
+  body.portal-fit .va-hero .talk { width: clamp(52px, 8.5vh, 84px); height: clamp(52px, 8.5vh, 84px); }
+  body.portal-fit .va-hero .chips { padding-bottom: clamp(6px, 1.2vh, 12px); }
+  body.portal-fit .va-hero .composer { padding-top: clamp(8px, 1.3vh, 12px); padding-bottom: clamp(10px, 1.6vh, 16px); }
+  /* During a conversation the stage collapses to a strip and the chat takes the space. */
+  body.portal-fit .va-hero:not(.chat-empty) .stage { flex: 0 0 auto; flex-direction: row; flex-wrap: nowrap; padding: 10px 20px; gap: 16px; }
+  body.portal-fit .va-hero:not(.chat-empty) .robot-wrap { width: 56px; height: 56px; box-shadow: 0 0 0 5px var(--brand-soft); }
+  body.portal-fit .va-hero:not(.chat-empty) .wave { width: 140px; height: 24px; }
+  body.portal-fit .va-hero:not(.chat-empty) .talk { width: 52px; height: 52px; }
+  body.portal-fit .va-hero:not(.chat-empty) .talk .icon { width: 22px; height: 22px; }
+  body.portal-fit .va-hero:not(.chat-empty) .stage-status { width: auto; text-align: left; }
+  body.portal-fit .va-hero .chat { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  body.portal-fit .va-hero.chat-empty .chat { flex: 0 0 auto; }
+  body.portal-fit .va-hero .log { flex: 1 1 auto; min-height: 0; max-height: none; }
+  body.portal-fit .side-col { min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: clamp(10px, 1.8vh, 16px); }
+  body.portal-fit .quick { flex: 0 1 auto; min-height: 0; overflow-y: auto; gap: clamp(4px, 0.9vh, 8px); padding: clamp(12px, 2vh, 20px); }
+  body.portal-fit .quick h2 { margin-bottom: clamp(2px, 0.6vh, 6px); }
+  body.portal-fit .quick-btn { padding: clamp(5px, 1vh, 10px) 12px; }
+  body.portal-fit .side-col.teacher .quick { flex: none; }
+  body.portal-fit .side-col #approvals { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: clamp(12px, 2vh, 20px); }
+  body.portal-fit .side-col #approvals .approvals { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+  body.portal-fit .side-col .approval { grid-template-columns: auto 1fr; padding: 10px 12px; }
+  body.portal-fit .side-col .row-actions { grid-column: 1 / -1; justify-content: flex-start; }
+}
+
+/* Services strip (replaces exam/attendance cards) */
+.services { padding: clamp(10px, 1.6vh, 16px) 18px; }
+.services-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: clamp(8px, 1.2vh, 12px); }
+.services-head strong { font-family: var(--font-display); font-size: 15px; }
+.service-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.service { display: flex; align-items: center; gap: 12px; padding: clamp(8px, 1.3vh, 12px) 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); color: var(--text); font: inherit; text-align: left; cursor: pointer; min-width: 0; transition: border-color 0.15s, transform 0.15s; }
+.service:hover { border-color: var(--brand-mid); transform: translateY(-1px); }
+.service strong { display: block; font-size: 14px; }
+.service small { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.service-icon { width: clamp(34px, 5vh, 42px); height: clamp(34px, 5vh, 42px); flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-strong); }
+body.portal-fit .services { flex: none; }
+@media (max-width: 1000px) { .service-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Recent conversations: fills the right column under Quick actions */
+.recent { display: flex; flex-direction: column; }
+.recent .card-head { margin-bottom: 10px; align-items: center; }
+.recent h2 { margin: 0; }
+.recent-list { display: flex; flex-direction: column; gap: 4px; }
+.recent-item { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 10px; text-decoration: none; color: var(--text); min-width: 0; }
+.recent-item:hover { background: var(--surface-2); }
+.recent-item .row-icon { width: 30px; height: 30px; flex: none; }
+.recent-text { min-width: 0; }
+.recent-text strong { display: block; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.recent-text small { display: block; font-size: 12px; color: var(--muted); }
+body.portal-fit .side-col:not(.teacher) .quick { flex: none; overflow: visible; }
+body.portal-fit .recent { flex: 1 1 auto; min-height: 0; padding: clamp(12px, 2vh, 20px); }
+body.portal-fit .recent-list { flex: 1; min-height: 0; overflow-y: auto; }

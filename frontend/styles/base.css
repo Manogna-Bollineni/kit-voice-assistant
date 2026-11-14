@@ -1,0 +1,39 @@
+/* Base elements, buttons, inputs, logo. */
+/* Base */
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+a { color: var(--brand); }
+h1, h2, h3, .btn, .logo, .brand strong, .side-brand { font-family: var(--font-display); }
+h1, h2, h3 { line-height: 1.2; margin: 0 0 6px; letter-spacing: -0.02em; }
+h1 { font-size: clamp(1.6rem, 3.6vw, 2.3rem); overflow-wrap: anywhere; }
+h2 { font-size: 1.15rem; }
+h3 { font-size: 0.98rem; }
+p { margin: 0 0 10px; }
+.muted { color: var(--muted); }
+.center { text-align: center; }
+.error { color: var(--danger); margin: 0; min-height: 1.2em; font-size: 14px; }
+.empty { color: var(--muted); text-align: center; padding: 28px 12px; margin: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.icon { flex: none; }
+input { font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 11px 14px; min-width: 0; }
+input:focus { outline: 2px solid color-mix(in srgb, var(--brand) 35%, transparent); border-color: var(--brand); }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 14px; line-height: 1; padding: 12px 18px; border-radius: 12px; border: 1px solid transparent; background: var(--brand); color: var(--on-brand); cursor: pointer; text-decoration: none; transition: filter 0.15s, transform 0.15s; }
+.btn:hover { filter: brightness(1.08); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-sm { padding: 9px 14px; font-size: 13px; }
+.btn-block { width: 100%; }
+.btn-outline { background: transparent; color: var(--text); border-color: var(--line); }
+.btn-danger { background: var(--danger); color: #fff; }
+.link { font: inherit; font-size: 13px; color: var(--brand); background: none; border: 0; padding: 0; cursor: pointer; }
+.icon-btn { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
+.icon-btn:hover { color: var(--brand); border-color: var(--brand); }
+
+/* Logo */
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); }
+.logo { width: 38px; height: 38px; border-radius: 11px; background: #0e5c6b; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; letter-spacing: 0.04em; box-shadow: inset 0 -3px 0 #f5821f; flex: none; }
+.brand-text strong { display: block; font-size: 15px; }
+.brand-text span { display: block; font-size: 12px; color: var(--muted); }

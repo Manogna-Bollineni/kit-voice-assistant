@@ -1,17 +1,19 @@
-// Voice assistant: robot stage (waveform + mic), chat log, suggestions and typed input. Speaks replies aloud.
+// Voice assistant: robot stage (waveform + mic), chat log, suggestions and typed input.
+// Replies are read aloud according to the user's voice-reply setting (see services/speech.js).
 import { el } from '../services/api.js';
+import { REPLY_MODES, getReplyMode, setReplyMode, shouldSpeak, speak, stopSpeaking } from '../services/speech.js';
 import { createMicButton } from './micButton.js';
 import { createConversation } from './conversation.js';
 import { icon } from './icons.js';
 
-function storageGet(key) {
+function sessionGet(key) {
   try {
     return sessionStorage.getItem(key);
   } catch {
     return null;
   }
 }
-function storageSet(key, value) {
+function sessionSet(key, value) {
   try {
     if (value) sessionStorage.setItem(key, value);
     else sessionStorage.removeItem(key);
@@ -20,41 +22,53 @@ function storageSet(key, value) {
   }
 }
 
+/** Cycles Voice replies: when I speak → always → off. */
+function replyModeToggle() {
+  let mode = getReplyMode();
+  const button = el('button', { type: 'button', class: 'voice-mode' });
+  const render = () => {
+    button.replaceChildren(icon(mode === 'off' ? 'mic' : 'volume', 14), REPLY_MODES[mode]);
+    button.setAttribute('aria-label', `${REPLY_MODES[mode]}. Click to change.`);
+    button.dataset.mode = mode;
+  };
+  button.addEventListener('click', () => {
+    const order = Object.keys(REPLY_MODES);
+    mode = order[(order.indexOf(mode) + 1) % order.length];
+    setReplyMode(mode);
+    if (mode === 'off') stopSpeaking();
+    render();
+  });
+  render();
+  return { element: button, get mode() { return mode; } };
+}
+
 /**
- * Mounts the assistant into root. Options: mode ('public' | 'member'), greeting, suggestions, userInitials, compact.
+ * Mounts the assistant into root.
+ * Options: mode ('public' | 'member'), greeting, suggestions, userInitials, layout ('split' | 'hero').
  * Returns { ask(text) } so buttons elsewhere on the page can send a question.
  */
-export function mountAssistant(root, { mode, greeting, suggestions = [], userInitials, compact = false, layout = 'split' }) {
+export function mountAssistant(root, { mode, greeting, suggestions = [], userInitials, layout = 'split' }) {
   const convKey = `kit_conv_${mode}`;
-  let conversationId = storageGet(convKey);
+  const hero = layout === 'hero';
+  let conversationId = sessionGet(convKey);
   let busy = false;
 
-  const hero = layout === 'hero';
-  const card = el('div', { class: `va-card ${compact ? 'compact' : ''} ${hero ? 'va-hero chat-empty' : ''}`, 'data-state': 'idle' });
+  const card = el('div', { class: `va-card ${hero ? 'va-hero chat-empty' : ''}`, 'data-state': 'idle' });
   const setState = (state) => (card.dataset.state = state);
-  const conversation = createConversation({ userInitials });
-  const log = { ...conversation, add: (...a) => (card.classList.remove('chat-empty'), conversation.add(...a)) };
-  const status = el('p', { class: 'stage-status' }, hero ? 'Tap the mic to speak, or type below' : 'Tap the mic and speak');
-  const setStatus = (text) => (status.textContent = text);
-
-  function speak(text) {
-    if (!('speechSynthesis' in window) || !text) return setState('idle');
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const voices = window.speechSynthesis.getVoices();
-    u.voice = voices.find((v) => v.lang === 'en-IN') ?? voices.find((v) => v.lang?.startsWith('en')) ?? null;
-    u.rate = 1.05;
-    u.onstart = () => setState('speaking');
-    u.onend = u.onerror = () => card.dataset.state === 'speaking' && setState('idle');
-    window.speechSynthesis.speak(u);
-  }
-  const stopSpeaking = () => {
-    window.speechSynthesis?.cancel();
+  const say = (text) => speak(text, { onStart: () => setState('speaking'), onEnd: () => card.dataset.state === 'speaking' && setState('idle') });
+  const quiet = () => {
+    stopSpeaking();
     if (card.dataset.state === 'speaking') setState('idle');
   };
 
+  const conversation = createConversation({ userInitials, onListen: say });
+  const log = { ...conversation, add: (...a) => (card.classList.remove('chat-empty'), conversation.add(...a)) };
+  const status = el('p', { class: 'stage-status' }, hero ? 'Tap the mic to speak, or type below' : 'Tap the mic and speak');
+  const setStatus = (text) => (status.textContent = text);
+  const voiceMode = replyModeToggle();
+
   const mic = createMicButton({
-    onStart: stopSpeaking,
+    onStart: quiet,
     onAudio: (blob) => send(blob, blob.type, 'voice'),
     onStatus: setStatus,
     onRecording: (rec) => {
@@ -63,7 +77,7 @@ export function mountAssistant(root, { mode, greeting, suggestions = [], userIni
     },
   });
 
-  const wave = el('div', { class: 'wave', 'aria-hidden': 'true' }, ...Array.from({ length: 24 }, (_, i) => el('i')));
+  const wave = el('div', { class: 'wave', 'aria-hidden': 'true' }, ...Array.from({ length: 24 }, () => el('i')));
   const stage = el(
     'div',
     { class: 'stage' },
@@ -71,6 +85,7 @@ export function mountAssistant(root, { mode, greeting, suggestions = [], userIni
     wave,
     mic.element,
     status,
+    voiceMode.element,
   );
 
   const input = el('input', { type: 'text', name: 'text', placeholder: 'Type your question…', maxlength: '1000', 'aria-label': 'Type your question', autocomplete: 'off' });
@@ -93,7 +108,7 @@ export function mountAssistant(root, { mode, greeting, suggestions = [], userIni
     if (message) setStatus(message);
   }
 
-  async function handleResponse(res, kind) {
+  async function handleResponse(res, askedBy) {
     let data = {};
     try {
       data = await res.json();
@@ -101,16 +116,16 @@ export function mountAssistant(root, { mode, greeting, suggestions = [], userIni
       /* non-JSON error page */
     }
     setBusy(false);
+    setState('idle');
     if (data.conversationId) {
       conversationId = data.conversationId;
-      storageSet(convKey, conversationId);
+      sessionSet(convKey, conversationId);
     }
-    if (kind === 'voice' && data.transcript) log.add('user', data.transcript);
+    if (askedBy === 'voice' && data.transcript) log.add('user', data.transcript);
     const reply = data.reply ?? data.error ?? 'Something went wrong. Please try again.';
     const done = (data.actions ?? []).filter((a) => a.write && a.ok).map((a) => a.name.replaceAll('_', ' '));
     log.add('assistant', reply, done.length ? `Done: ${done.join(', ')}` : undefined);
-    setState('idle');
-    speak(reply);
+    if (shouldSpeak(voiceMode.mode, askedBy)) say(reply);
     setStatus(res.ok ? 'Tap the mic to reply' : 'Something went wrong — try again');
     if (data.sessionExpired) {
       log.add('assistant', 'Your session has expired. Please log in again.');
@@ -118,13 +133,13 @@ export function mountAssistant(root, { mode, greeting, suggestions = [], userIni
     }
   }
 
-  async function send(body, contentType, kind) {
-    setBusy(true, kind === 'voice' ? 'Transcribing and thinking…' : 'Thinking…');
+  async function send(body, contentType, askedBy) {
+    setBusy(true, askedBy === 'voice' ? 'Transcribing and thinking…' : 'Thinking…');
     const params = new URLSearchParams({ mode });
     if (conversationId) params.set('conversationId', conversationId);
     try {
-      const res = await fetch(`/api/assistant/${kind}?${params}`, { method: 'POST', headers: { 'Content-Type': contentType }, body });
-      await handleResponse(res, kind);
+      const res = await fetch(`/api/assistant/${askedBy}?${params}`, { method: 'POST', headers: { 'Content-Type': contentType }, body });
+      await handleResponse(res, askedBy);
     } catch {
       setBusy(false);
       setState('idle');
@@ -135,7 +150,7 @@ export function mountAssistant(root, { mode, greeting, suggestions = [], userIni
 
   function ask(text) {
     if (!text || busy) return;
-    stopSpeaking();
+    quiet();
     log.add('user', text);
     send(JSON.stringify({ text }), 'application/json', 'text');
   }
@@ -151,9 +166,9 @@ export function mountAssistant(root, { mode, greeting, suggestions = [], userIni
     if (chip) ask(chip.textContent);
   });
   reset.addEventListener('click', () => {
-    stopSpeaking();
+    quiet();
     conversationId = null;
-    storageSet(convKey, null);
+    sessionSet(convKey, null);
     log.clear();
     if (hero) card.classList.add('chat-empty');
     else if (greeting) log.add('assistant', greeting);

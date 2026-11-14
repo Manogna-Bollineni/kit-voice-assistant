@@ -12,7 +12,8 @@ Real-time voice assistant for Knotopian Institute of Technology. People speak an
 | | Teacher | Pending requests → **approve / reject**; class attendance |
 | `/history` | All | Own past conversations only |
 
-- **Voice:** mic → server speech-to-text (Groq Whisper; no Web Speech API) → AI with tools → spoken reply. Stops on silence; typing also works.
+- **Voice:** mic → server speech-to-text (Groq Whisper; the browser's speech recognition is never used) → AI with tools → reply. Recording stops on silence; typing also works.
+- **Voice replies are the user's choice:** *when I speak* (default: spoken questions get spoken answers, typed questions get text), *always*, or *off*; every reply also has a 🔊 button.
 - **Correct answers:** live API data plus the documents in force; circulars override the handbook; superseded and draft documents are ignored.
 - **Safe actions:** writes run only after the user says "yes" (enforced by the server) and are sent with an idempotency key.
 - **Stored data** (Postgres; SQLite locally): `conversations`, `messages`, plus records the assistant creates or changes, using the college API schemas as columns: `users` (UserSummary, on login), `admission_applications`, `requests` (leave/on-duty, updated on cancel/approve/reject), `placement_registrations`. Each record is linked to its conversation. College data itself (courses, attendance, calendar) is always read live, never copied.
@@ -23,7 +24,7 @@ Real-time voice assistant for Knotopian Institute of Technology. People speak an
 npm install
 cp .env.example .env   # fill keys
 npm start              # http://localhost:3000
-npm test               # 39 tests
+npm test               # 47 tests
 docker compose up --build   # app + Postgres
 ```
 Required: `KIT_PARTICIPANT_KEY`, `GROQ_API_KEY`. Optional: `ANTHROPIC_API_KEY` (Claude becomes the main AI), `GEMINI_API_KEY`, `DEEPGRAM_API_KEY`, `OPENAI_API_KEY`, `DATABASE_URL` (default: SQLite).
@@ -35,8 +36,11 @@ New → Blueprint → this repo (`render.yaml` creates the app + Postgres). Set 
 
 ## Layout
 ```
-frontend/  pages/ (html + page js)  components/ (voiceAssistant, micButton, conversation, icons)
-           services/ (api, layout, theme)  styles/  images/ (robot, campus)
+frontend/  pages/        index · login · assistant · history (.html + page script)
+           components/   voiceAssistant · micButton · conversation · icons (generated from lucide)
+           services/     api (fetch + DOM helpers) · layout (header, sidebar, footer) · speech (spoken replies, reply setting) · theme
+           styles/       style.css imports, in order: tokens · base · public · assistant · portal · responsive · footer · landing · brand · portal-home · refinements
+           images/       robot · campus · logo-mark
 scripts/build-icons.mjs  generates components/icons.js from lucide (npm run icons)
 backend/   main.js  app.js (routes)  config.js
            auth/security.js         sessions, cookies

@@ -2,6 +2,7 @@ import { api, el, currentUser, rupees } from '../services/api.js';
 import { mountPublic, TAGLINE } from '../services/layout.js';
 import { mountAssistant } from '../components/voiceAssistant.js';
 import { icon } from '../components/icons.js';
+import { stopSpeaking } from '../services/speech.js';
 
 const DEPT_ICON = { CSE: 'cpu', ECE: 'radio', MECH: 'gear' };
 
@@ -72,7 +73,7 @@ function openDrawer(trigger) {
 }
 function closeDrawer() {
   document.body.classList.remove('drawer-open');
-  window.speechSynthesis?.cancel();
+  stopSpeaking();
   setTimeout(() => (drawer.hidden = backdrop.hidden = true), 250);
   if (location.hash === '#talk') history.replaceState(null, '', location.pathname);
   opener?.focus?.();
