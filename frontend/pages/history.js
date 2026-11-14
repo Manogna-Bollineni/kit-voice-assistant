@@ -1,9 +1,13 @@
 import { api, el, currentUser, formatDate } from '../services/api.js';
-import { mountPublic, mountShell } from '../services/layout.js';
+import { mountShell } from '../services/layout.js';
 import { icon } from '../components/icons.js';
 
 const user = await currentUser();
-const content = user ? mountShell(user, { active: 'history' }) : mountPublic(null, 'history');
+if (!user) {
+  location.replace('/login?next=/history');
+  throw new Error('redirecting');
+}
+const content = mountShell(user, { active: 'history' });
 
 const TAGS = [
   [/attendance|absent|bunk|percent/i, 'Attendance'],
@@ -24,7 +28,7 @@ content.append(
     el(
       'div',
       { class: 'card-head' },
-      el('div', {}, el('h1', {}, 'Conversation history'), el('p', { class: 'muted' }, user ? `Your conversations, ${user.full_name}` : 'Conversations from this browser. Log in to see your account history.')),
+      el('div', {}, el('h1', {}, 'Conversation history'), el('p', { class: 'muted' }, `Your conversations, ${user.full_name}`)),
       el('label', { class: 'field search' }, icon('search', 18), search),
     ),
     list,
@@ -69,6 +73,7 @@ function render() {
         el('span', { class: 'row-go' }, icon('play', 14)),
       );
       row.addEventListener('click', () => toggle(row, c));
+      row.dataset.id = c.id;
       return row;
     }),
   );
@@ -78,6 +83,13 @@ search.addEventListener('input', render);
 try {
   all = (await api('/api/history')).conversations;
   render();
+  // Opened from a Recent conversations link: expand that conversation.
+  const wanted = decodeURIComponent(location.hash.slice(1));
+  const target = wanted && [...list.querySelectorAll('.history-row')].find((r) => r.dataset.id === wanted);
+  if (target) {
+    toggle(target, all.find((c) => c.id === wanted));
+    target.scrollIntoView({ block: 'center' });
+  }
 } catch (err) {
   list.replaceChildren(el('p', { class: 'error' }, `Could not load history: ${err.message}`));
 }

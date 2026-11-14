@@ -20,8 +20,12 @@ if (isTeacher && overview?.pendingCount) {
 }
 if (!isTeacher && exam) notices.push({ icon: 'calendar', title: 'Next exam', detail: `${exam.title} · ${formatDate(exam.date)}`, href: askUrl(EXAM_PROMPT) });
 
-const content = mountShell(user, { active: 'home', badge: overview?.pendingCount ?? 0, notices });
-document.body.classList.add('portal-fit');
+const content = mountShell(user, { active: 'home', notices });
+// Fit-to-window layout only when there is room for it; smaller screens scroll normally so nothing gets clipped.
+const roomy = matchMedia('(min-width: 1001px) and (min-height: 700px)');
+const applyFit = () => document.body.classList.toggle('portal-fit', roomy.matches);
+roomy.addEventListener('change', applyFit);
+applyFit();
 
 const QUICK = isTeacher
   ? [
@@ -90,17 +94,17 @@ content.append(
 if (isTeacher) side.append(await approvalsPanel());
 else side.append(await recentPanel());
 
-/** Latest conversations, filling the space under Quick actions. */
+/** History panel: latest conversations, filling the space under Quick actions. */
 async function recentPanel() {
   const list = el('div', { class: 'recent-list' }, el('p', { class: 'muted' }, 'Loading…'));
-  const panel = el('section', { class: 'card pad recent' }, el('div', { class: 'card-head' }, el('h2', {}, 'Recent conversations'), el('a', { class: 'link', href: '/history' }, 'View all')), list);
+  const panel = el('section', { class: 'card pad recent' }, el('div', { class: 'card-head' }, el('h2', {}, 'History'), el('a', { class: 'link', href: '/history' }, 'View all')), list);
   try {
     const { conversations } = await api('/api/history');
     const items = conversations.filter((c) => c.mode === 'member').slice(0, 6);
     list.replaceChildren(
       ...(items.length
-        ? items.map((c) => el('a', { class: 'recent-item', href: '/history' }, el('span', { class: 'row-icon' }, icon('mic', 16)), el('span', { class: 'recent-text' }, el('strong', {}, c.title), el('small', {}, formatDate(c.updatedAt, true)))))
-        : [el('p', { class: 'empty' }, 'Your conversations will appear here.')]),
+        ? items.map((c) => el('a', { class: 'recent-item', href: `/history#${encodeURIComponent(c.id)}` }, el('span', { class: 'row-icon' }, icon('mic', 16)), el('span', { class: 'recent-text' }, el('strong', {}, c.title), el('small', {}, formatDate(c.updatedAt, true)))))
+        : [el('p', { class: 'empty' }, 'Your past conversations will appear here.')]),
     );
   } catch {
     list.replaceChildren(el('p', { class: 'muted' }, 'History is unavailable right now.'));
@@ -108,7 +112,7 @@ async function recentPanel() {
   return panel;
 }
 
-// Sidebar shortcuts and notifications land here with ?ask=…; send it once, then clean the URL.
+// Notifications and links land here with ?ask=…; send it once, then clean the URL.
 const asked = new URLSearchParams(location.search).get('ask');
 if (asked) {
   history.replaceState(null, '', '/assistant');
@@ -141,8 +145,6 @@ async function approvalsPanel() {
         await api(`/api/teacher/requests/${r.id}/${decision}`, { method: 'POST', body: JSON.stringify(decision === 'reject' ? { reason } : {}) });
         actions.replaceChildren(el('span', { class: `status ${decision === 'approve' ? 'ok' : 'no'}` }, decision === 'approve' ? '✓ Approved' : '✕ Rejected'));
         item.classList.add('decided');
-        const badge = document.querySelector('.side-link .count');
-        if (badge) badge.textContent = String(Math.max(0, Number(badge.textContent) - 1));
       } catch (err) {
         actions.append(el('span', { class: 'error' }, err.message));
         actions.querySelectorAll('button').forEach((b) => (b.disabled = false));

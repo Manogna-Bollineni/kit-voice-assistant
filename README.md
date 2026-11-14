@@ -2,7 +2,7 @@
 
 Real-time voice assistant for Knotopian Institute of Technology. People speak and it replies aloud. It answers from live college data and documents, and completes requests in the KIT college system.
 
-**Live:** _add Render URL_
+**Live:** https://kit-voice-assistant-9zi1.onrender.com (free Render instance: first visit after 15 idle minutes takes ~1 minute to wake)
 
 ## Features
 | Page | Who | Can do |
@@ -38,7 +38,7 @@ New → Blueprint → this repo (`render.yaml` creates the app + Postgres). Set 
 ```
 frontend/  pages/        index · login · assistant · history (.html + page script)
            components/   voiceAssistant · micButton · conversation · icons (generated from lucide)
-           services/     api (fetch + DOM helpers) · layout (header, sidebar, footer) · speech (spoken replies, reply setting) · theme
+           services/     api (fetch + DOM helpers) · layout (public header, portal top bar, footer) · speech (spoken replies, reply setting) · theme
            styles/       style.css imports, in order: tokens · base · public · assistant · portal · responsive · footer · landing · brand · portal-home · refinements
            images/       robot · campus · logo-mark
 scripts/build-icons.mjs  generates components/icons.js from lucide (npm run icons)

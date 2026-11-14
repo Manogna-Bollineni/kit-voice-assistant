@@ -6,11 +6,13 @@ import { KitApiError } from './services/collegeApi.js';
 import { AgentUnavailableError } from './agent/orchestrator.js';
 import { recentActionNotes } from './services/history.js';
 import { SttUnavailableError } from './voice/stt.js';
-import { SESSION_COOKIE, VISITOR_COOKIE, cookie, newId, parseCookies } from './auth/security.js';
+import { SESSION_COOKIE, VISITOR_COOKIE, cookie, newId, parseCookies, safeNextPath } from './auth/security.js';
 import { registerPortalRoutes } from './routes/portal.js';
 
 const FRONTEND_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'frontend');
 const PAGES = { '/': 'index.html', '/login': 'login.html', '/assistant': 'assistant.html', '/history': 'history.html' };
+const PROTECTED_PAGES = new Set(['/assistant', '/history']);
+const LOGIN_ID = /^[A-Za-z0-9._-]{2,64}$/;
 const MAX_TEXT = 1000;
 const HISTORY_TURNS = 12;
 
@@ -65,10 +67,11 @@ export function createApp({ kit, agent, transcriber, store, sessions, knowledge,
   });
 
   // Identity: logged-in session (if any) plus an anonymous visitor id for public history.
-  app.use((req, res, next) => {
+  app.use(async (req, res, next) => {
     const cookies = parseCookies(req.headers.cookie);
     req.sid = cookies[SESSION_COOKIE];
-    req.session = sessions.get(req.sid);
+    req.session = await sessions.get(req.sid);
+    if (req.sid && !req.session) res.append('Set-Cookie', cookie(SESSION_COOKIE, '', { maxAgeSec: 0, secure: secureCookies }));
     let vid = cookies[VISITOR_COOKIE];
     if (!vid || !/^[\w-]{20,64}$/.test(vid)) {
       vid = newId();
@@ -124,17 +127,16 @@ export function createApp({ kit, agent, transcriber, store, sessions, knowledge,
   app.post('/api/auth/login', rateLimit({ windowMs: 60_000, max: 10 }), json, async (req, res) => {
     const loginId = String(req.body?.login_id ?? '').trim();
     const password = String(req.body?.password ?? '');
-    if (!loginId || !password || loginId.length > 64 || password.length > 128) {
-      return res.status(400).json({ error: 'Enter your login ID and password.' });
-    }
+    if (!loginId || !password) return res.status(400).json({ error: 'Enter your login ID and password.' });
+    if (!LOGIN_ID.test(loginId) || password.length > 128) return res.status(400).json({ error: 'Login ID can only contain letters, numbers, dots, dashes and underscores.' });
     try {
       const out = await kit.login(loginId, password);
       if (!out?.access_token || !out?.user) throw new KitApiError(502, 'bad_login_response', 'Unexpected login response');
-      if (req.session) sessions.destroy(req.sid);
-      const sid = sessions.create(out.access_token, out.user, out.expires_in);
+      if (req.session) await sessions.destroy(req.sid);
+      const sid = await sessions.create(out.access_token, out.user, out.expires_in);
       await store.saveRecord('users', out.user).catch((err) => logger.error(`[users] ${err.message}`));
       res.append('Set-Cookie', cookie(SESSION_COOKIE, sid, { maxAgeSec: out.expires_in ?? 28800, secure: secureCookies }));
-      res.json({ user: publicUser(out.user) });
+      res.json({ user: publicUser(out.user), next: safeNextPath(req.body?.next) });
     } catch (err) {
       if (err instanceof KitApiError && (err.status === 401 || err.status === 400 || err.status === 422)) {
         return res.status(401).json({ error: 'Login ID or password is incorrect.' });
@@ -144,8 +146,8 @@ export function createApp({ kit, agent, transcriber, store, sessions, knowledge,
     }
   });
 
-  app.post('/api/auth/logout', (req, res) => {
-    if (req.sid) sessions.destroy(req.sid);
+  app.post('/api/auth/logout', async (req, res) => {
+    if (req.sid) await sessions.destroy(req.sid);
     res.append('Set-Cookie', cookie(SESSION_COOKIE, '', { maxAgeSec: 0, secure: secureCookies }));
     res.json({ ok: true });
   });
@@ -231,11 +233,15 @@ export function createApp({ kit, agent, transcriber, store, sessions, knowledge,
     },
   );
 
-  app.get('/api/history', async (req, res) => {
+  // History is only for logged-in students and teachers.
+  const requireLogin = (req, res, next) => (req.session ? next() : res.status(401).json({ error: 'Please log in to see your history.', sessionExpired: true }));
+
+  app.get('/api/history', requireLogin, async (req, res) => {
     res.json({ conversations: await store.listConversations(req.owner) });
   });
 
-  app.get('/api/history/:id', async (req, res) => {
+  app.get('/api/history/:id', requireLogin, async (req, res) => {
+    if (!/^[0-9a-f-]{36}$/i.test(req.params.id)) return res.status(404).json({ error: 'Conversation not found.' });
     const conversation = await store.getConversation(req.owner, req.params.id);
     if (!conversation) return res.status(404).json({ error: 'Conversation not found.' });
     const messages = (await store.messages(conversation.id)).map((m) => ({
@@ -252,7 +258,12 @@ export function createApp({ kit, agent, transcriber, store, sessions, knowledge,
   // no-cache = always revalidate (cheap 304 when unchanged), so a redeploy is never hidden by stale JS/CSS in the browser.
   const revalidate = (res) => res.setHeader('Cache-Control', 'no-cache');
   for (const [route, page] of Object.entries(PAGES)) {
-    app.get(route, (req, res) => res.sendFile(path.join(FRONTEND_DIR, 'pages', page), { headers: { 'Cache-Control': 'no-cache' } }));
+    app.get(route, (req, res) => {
+      // Server-side guards: protected pages need a session; the login page is skipped when already logged in.
+      if (PROTECTED_PAGES.has(route) && !req.session) return res.redirect(302, `/login?next=${encodeURIComponent(req.originalUrl)}`);
+      if (route === '/login' && req.session) return res.redirect(302, safeNextPath(req.query.next));
+      res.sendFile(path.join(FRONTEND_DIR, 'pages', page), { headers: { 'Cache-Control': 'no-cache' } });
+    });
   }
   app.get(['/favicon.svg', '/favicon.ico'], (req, res) => {
     res.type('image/svg+xml').set('Cache-Control', 'public, max-age=86400').sendFile(path.join(FRONTEND_DIR, 'favicon.svg'));

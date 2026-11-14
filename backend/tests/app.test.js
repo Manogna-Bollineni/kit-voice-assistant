@@ -98,6 +98,7 @@ test('logged-in member turn uses the session role and token', async () => {
 
 test('voice turn transcribes server-side and continues the same conversation', async () => {
   const c = client();
+  await c('/api/auth/login', { method: 'POST', body: { login_id: 'kavya', password: 'Kit@2026' } });
   const first = await c('/api/assistant/voice?mode=public', { method: 'POST', body: new Uint8Array(2000), headers: { 'content-type': 'audio/webm;codecs=opus' } });
   assert.equal(first.status, 200);
   assert.equal(first.data.transcript, 'spoken words');
@@ -115,9 +116,11 @@ test('too-short audio is rejected without calling speech or AI', async () => {
   assert.equal(agentCalls.length, before);
 });
 
-test('history is private to its owner', async () => {
+test('history is private to its owner and needs a login', async () => {
   const alice = client();
   const bob = client();
+  await alice('/api/auth/login', { method: 'POST', body: { login_id: 'alice', password: 'Kit@2026' } });
+  await bob('/api/auth/login', { method: 'POST', body: { login_id: 'bob', password: 'Kit@2026' } });
   const r = await alice('/api/assistant/text', { method: 'POST', body: { text: 'my secret question', mode: 'public' } });
   const id = r.data.conversationId;
   assert.equal((await alice(`/api/history/${id}`)).status, 200);
@@ -125,6 +128,9 @@ test('history is private to its owner', async () => {
   assert.ok(!(await bob('/api/history')).data.conversations.some((c) => c.id === id));
   const hijack = await bob('/api/assistant/text', { method: 'POST', body: { text: 'continue', mode: 'public', conversationId: id } });
   assert.notEqual(hijack.data.conversationId, id, 'cannot append to someone else’s conversation');
+  const visitor = client();
+  assert.equal((await visitor('/api/history')).status, 401);
+  assert.equal((await visitor(`/api/history/${id}`)).status, 401);
 });
 
 test('security headers are set', async () => {
@@ -156,4 +162,32 @@ test('teacher approval routes: login, role and reason are enforced; decisions ar
   assert.equal(kitPosts.at(-1).o.token, 'secret-jwt-lakshmi');
   assert.ok(kitPosts.at(-1).o.idempotencyKey);
   assert.equal((await store.records('requests')).find((r) => r.id === 44).status, 'approved');
+});
+
+test('protected pages redirect to login with a safe return path; login page skips when logged in', async () => {
+  const page = (path, cookie = '') => fetch(base + path, { redirect: 'manual', headers: { cookie } });
+  let r = await page('/history');
+  assert.equal(r.status, 302);
+  assert.equal(r.headers.get('location'), '/login?next=%2Fhistory');
+  assert.equal((await page('/assistant')).headers.get('location'), '/login?next=%2Fassistant');
+  assert.equal((await page('/')).status, 200);
+
+  const login = await fetch(base + '/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ login_id: 'arjun', password: 'Kit@2026', next: '/history' }) });
+  assert.equal((await login.json()).next, '/history');
+  const sid = login.headers.getSetCookie().find((c) => c.startsWith('kit_sid=')).split(';')[0];
+  assert.equal((await page('/history', sid)).status, 200);
+  r = await page('/login?next=/history', sid);
+  assert.equal(r.headers.get('location'), '/history');
+  assert.equal((await page('/login?next=//evil.example', sid)).headers.get('location'), '/assistant', 'open redirects are refused');
+});
+
+test('login validates the login id format before calling the college system', async () => {
+  const r = await client()('/api/auth/login', { method: 'POST', body: { login_id: 'a b<script>', password: 'x' } });
+  assert.equal(r.status, 400);
+});
+
+test('a forged session cookie is treated as logged out and cleared', async () => {
+  const r = await fetch(base + '/api/me', { headers: { cookie: 'kit_sid=forged-session-id-1234567890abcd' } });
+  assert.equal((await r.json()).user, null);
+  assert.match(r.headers.getSetCookie().join(';'), /kit_sid=;/);
 });

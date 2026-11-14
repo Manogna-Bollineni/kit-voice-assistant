@@ -1,17 +1,18 @@
-// Page chrome: public header for visitors, sidebar app shell for logged-in students and teachers.
+// Page chrome: public header for visitors, top-bar app shell for logged-in students and teachers.
 import { api, el, initials } from './api.js';
 import { icon } from '../components/icons.js';
+import { clearOpenConversation } from '../components/voiceAssistant.js';
 
 export const TAGLINE = 'Innovate. Learn. Excel.';
 
-/** KIT brand: leaf mark + wordmark + full name. `light` uses the white mark for dark backgrounds. */
-export function logo({ light = false, href = '/' } = {}) {
+/** KIT brand: leaf mark + wordmark + college name, with the tagline as a plain line underneath. */
+export function logo({ light = false, href = '/', tagline = true } = {}) {
   return el(
     'a',
     { class: `brand${light ? ' brand-light' : ''}`, href },
     el('img', { class: 'mark', src: '/images/logo-mark.svg', alt: '' }),
     el('span', { class: 'wordmark' }, 'KIT'),
-    el('span', { class: 'brand-text' }, el('strong', {}, 'Knotopian Institute'), el('span', {}, 'of Technology')),
+    el('span', { class: 'brand-text' }, el('strong', {}, 'Knotopian Institute of Technology'), tagline ? el('span', { class: 'brand-tagline' }, TAGLINE) : null),
   );
 }
 
@@ -32,6 +33,7 @@ export function themeToggle() {
 }
 
 async function logout() {
+  clearOpenConversation();
   await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
   location.href = '/';
 }
@@ -64,9 +66,9 @@ function siteFooter(user) {
     el(
       'div',
       { class: 'foot-grid' },
-      el('div', { class: 'foot-brand' }, logo({ light: true }), tagline),
+      el('div', { class: 'foot-brand' }, logo({ light: true, tagline: false }), tagline),
       el('div', {}, el('h3', {}, 'Admissions office'), contact),
-      el('div', {}, el('h3', {}, 'Quick links'), el('ul', { class: 'foot-list' }, link('/#courses', 'Programmes'), link('/#talk', 'Talk to KIT'), link(user ? '/assistant' : '/login', user ? 'My portal' : 'Student / teacher login'), link('/history', 'Conversation history'))),
+      el('div', {}, el('h3', {}, 'Quick links'), el('ul', { class: 'foot-list' }, link('/#courses', 'Programmes'), link('/#talk', 'Talk to KIT'), link(user ? '/assistant' : '/login', user ? 'My portal' : 'Student / teacher login'), user ? link('/history', 'Conversation history') : null)),
     ),
     el('div', { class: 'foot-bottom' }, el('span', {}, `© ${new Date().getFullYear()} Knotopian Institute of Technology`), el('span', {}, 'Office hours: Monday to Saturday, 9:00 AM – 5:00 PM')),
   );
@@ -113,45 +115,21 @@ function notificationsBell(notices = []) {
   return wrap;
 }
 
-/** Logged-in layout: sidebar + top bar. `actions` are sidebar shortcuts that ask the assistant. Returns the content element. */
-export function mountShell(user, { active = 'home', badge = 0, notices = [] } = {}) {
-  const item = (key, label, iconName, href, count) =>
-    el('a', { class: 'side-link', href, 'aria-current': active === key ? 'page' : null }, icon(iconName, 18), el('span', {}, label), count ? el('span', { class: 'count' }, String(count)) : null);
-  const ask = (text) => `/assistant?ask=${encodeURIComponent(text)}`;
-
-  const links =
-    user.role === 'teacher'
-      ? [
-          item('home', 'Home', 'home', '/assistant'),
-          item('approvals', 'Pending approvals', 'users', '/assistant#approvals', badge),
-          item('classes', 'Class attendance', 'chart', ask('Show attendance for my class')),
-          item('history', 'History', 'history', '/history'),
-          item('profile', 'Profile', 'user', ask('Show my profile details')),
-        ]
-      : [
-          item('home', 'Home', 'home', '/assistant'),
-          item('history', 'History', 'history', '/history'),
-          item('leave', 'Leave request', 'leave', ask('I want to apply for leave')),
-          item('od', 'On-duty request', 'flag', ask('I want to apply for on-duty')),
-          item('placements', 'Placements', 'briefcase', ask('Which placement drives can I join?')),
-          item('timetable', 'Timetable', 'clock', ask("What is today's timetable?")),
-          item('profile', 'Profile', 'user', ask('Show my profile details')),
-        ];
-
-  const out = el('button', { type: 'button', class: 'side-link' }, icon('logout', 18), el('span', {}, 'Logout'));
+/** Logged-in layout: top bar only (no sidebar); shortcuts live in Quick actions. Returns the content element. */
+export function mountShell(user, { active = 'home', notices = [] } = {}) {
+  const link = (key, label, iconName, href) => el('a', { class: 'shell-link', href, 'aria-current': active === key ? 'page' : null }, icon(iconName, 18), el('span', {}, label));
+  const out = el('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Logout', title: 'Logout' }, icon('logout', 18));
   out.addEventListener('click', logout);
-
-  const sidebar = el('aside', { class: 'sidebar' }, el('a', { class: 'side-brand', href: '/assistant' }, el('img', { class: 'mark', src: '/images/logo-mark.svg', alt: '' }), el('span', { class: 'wordmark' }, 'KIT')), el('nav', { class: 'side-nav', 'aria-label': 'Portal' }, ...links), el('div', { class: 'side-foot' }, out));
 
   const who =
     user.role === 'teacher' ? `Faculty · ${user.department ?? ''}` : `Student · ${[user.department, user.class_code].filter(Boolean).join(' · ')}`;
   const topbar = el(
     'header',
     { class: 'topbar' },
-    el('a', { class: 'brand mobile-only', href: '/assistant' }, el('img', { class: 'mark', src: '/images/logo-mark.svg', alt: 'KIT' })),
-    el('div', { class: 'topbar-right' }, themeToggle(), notificationsBell(notices), el('div', { class: 'user-chip' }, el('span', { class: 'avatar' }, initials(user.full_name)), el('span', {}, el('strong', {}, user.full_name), el('small', {}, who)))),
+    logo({ href: '/assistant' }),
+    el('div', { class: 'topbar-right' }, el('nav', { class: 'shell-nav', 'aria-label': 'Portal' }, link('home', 'Home', 'home', '/assistant'), link('history', 'History', 'history', '/history')), themeToggle(), notificationsBell(notices), el('div', { class: 'user-chip' }, el('span', { class: 'avatar' }, initials(user.full_name)), el('span', {}, el('strong', {}, user.full_name), el('small', {}, who))), out),
   );
   const content = el('main', { class: 'content' });
-  document.getElementById('app').replaceChildren(el('div', { class: 'app' }, sidebar, el('div', { class: 'app-main' }, topbar, content)));
+  document.getElementById('app').replaceChildren(el('div', { class: 'app app-no-side' }, el('div', { class: 'app-main' }, topbar, content)));
   return content;
 }

@@ -5,7 +5,7 @@
 .va-hero .chip { flex: none; }
 .va-hero .stage { overflow: hidden; }
 
-/* Short windows: compact stage strip, visible chat area, Quick actions scroll, Recent hidden. */
+/* Short windows: compact stage strip, visible chat area; Recent stays visible and scrolls. */
 @media (min-width: 821px) and (max-height: 780px) {
   body.portal-fit .va-hero .stage { flex: 0 0 auto; flex-direction: row; flex-wrap: nowrap; padding: 10px 20px; gap: 16px; }
   body.portal-fit .va-hero .robot-wrap { width: 56px; height: 56px; box-shadow: 0 0 0 5px var(--brand-soft); }
@@ -16,8 +16,10 @@
   body.portal-fit .va-hero.chat-empty .chat { flex: 1 1 auto; border-top: 1px solid var(--line); }
   body.portal-fit .va-hero.chat-empty .log { display: flex; align-items: center; justify-content: center; }
   body.portal-fit .va-hero.chat-empty .log::before { content: 'Ask about attendance, rules, leave or on-duty — by voice or text.'; color: var(--muted); font-size: 14px; text-align: center; }
-  body.portal-fit .recent { display: none; }
-  body.portal-fit .side-col:not(.teacher) .quick { flex: 1 1 auto; overflow-y: auto; }
+  body.portal-fit .quick { gap: 4px; padding: 12px 14px; }
+  body.portal-fit .quick-btn { padding: 4px 10px; font-size: 13px; }
+  body.portal-fit .quick-icon { transform: scale(0.85); }
+  body.portal-fit .recent { min-height: 110px; padding: 12px 14px; }
 }
 
 /* Narrow windows: four compact service tiles (no subtitles). */
@@ -59,3 +61,44 @@
   body.portal-fit .va-hero .voice-mode { margin-left: auto; }
 }
 .drawer .voice-mode { order: 5; }
+
+/* Taller header + tagline next to the logo */
+.site-header .bar { padding-top: 18px; padding-bottom: 18px; }
+.topbar { min-height: 76px; }
+@media (min-width: 821px) { body.portal-fit .topbar { padding-top: clamp(14px, 2.2vh, 20px); padding-bottom: clamp(14px, 2.2vh, 20px); } }
+.bar-left { display: flex; align-items: center; gap: 18px; min-width: 0; }
+
+/* No sidebar: full-width shell, brand + nav in the top bar; tagline sits as a plain line under the college name. */
+.app.app-no-side { grid-template-columns: 1fr; }
+.app-no-side .content { max-width: none; }
+.topbar .brand { flex: none; }
+.brand-text .brand-tagline { color: var(--accent-strong); font-weight: 500; font-size: 12px; margin-top: 2px; }
+.brand-light .brand-text .brand-tagline { color: var(--side-text); }
+.shell-nav { display: flex; align-items: center; gap: 4px; margin-right: 4px; }
+.shell-link { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; }
+.shell-link:hover { background: var(--brand-soft); color: var(--text); }
+.shell-link[aria-current='page'] { background: var(--brand-soft); color: var(--brand); font-weight: 600; }
+@media (max-width: 1100px) { .topbar .brand-text { display: none; } }
+@media (max-width: 820px) { .site-header .brand-text { display: none; } .shell-link span { display: none; } .shell-nav { margin-right: 0; } }
+a.quick-btn { text-decoration: none; box-sizing: border-box; }
+/* Phones/tablets: stack the home grid (portal-home.css forced two columns at every width) and tighten the top bar. */
+@media (max-width: 1000px) { .home-grid, .home-grid.teacher { grid-template-columns: 1fr; } }
+@media (max-width: 820px) {
+  .topbar { gap: 6px; }
+  .topbar-right { gap: 6px; }
+  .topbar .wordmark { display: none; }
+  .shell-link { padding: 8px; }
+}
+@media (max-width: 480px) { .service-tiles { grid-template-columns: 1fr; } }
+/* Login: "New user?" / "Forgot password?" links and their help note. */
+.login-links { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; }
+.link-btn { background: none; border: 0; padding: 0; font: inherit; font-size: 14px; color: var(--brand); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.link-btn:hover { color: var(--accent-strong); }
+.login-help { margin-top: 14px; padding: 12px 14px; border-radius: 12px; background: var(--brand-soft); font-size: 14px; text-align: left; }
+.login-help p { margin: 6px 0 0; }
+.login-help-contact { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.login-help-contact a { color: var(--brand); font-weight: 600; margin-right: 10px; }
+/* Fit mode never clips: the right column scrolls if it cannot fit, and History always shows a few rows. */
+body.portal-fit .side-col { overflow-y: auto; }
+body.portal-fit .recent { min-height: 170px; }
+body.portal-fit .side-col #approvals { min-height: 220px; }

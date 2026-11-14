@@ -8,7 +8,7 @@ const GROQ_URL = "https://api.groq.com/openai/v1";
 function fallbackLlms() {
   const list = [];
   if (env.GROQ_API_KEY) {
-    const groqModels = (env.GROQ_MODELS || "openai/gpt-oss-120b,qwen/qwen3.8-27b,openai/gpt-oss-20b")
+    const groqModels = (env.GROQ_MODELS || "openai/gpt-oss-120b,openai/gpt-oss-20b")
       .split(",")
       .map((m) => m.trim())
       .filter(Boolean);
@@ -68,6 +68,7 @@ export const config = {
     deepgramKey: env.DEEPGRAM_API_KEY || "",
     timeoutMs: Number(env.STT_TIMEOUT_MS) || 15000,
   },
+  sessionSecret: env.SESSION_SECRET || "",
   databaseUrl: env.DATABASE_URL || "",
   databaseSsl: env.DATABASE_SSL === "true",
   sqlitePath: env.SQLITE_PATH || "data/history.db",

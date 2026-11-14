@@ -15,7 +15,7 @@ export async function api(path, options = {}) {
   } catch {
     /* empty or non-JSON body */
   }
-  if (res.status === 401 && data.sessionExpired && !location.pathname.startsWith('/login')) location.href = '/login';
+  if (res.status === 401 && data.sessionExpired && !location.pathname.startsWith('/login')) location.href = `/login?next=${encodeURIComponent(location.pathname)}`;
   if (!res.ok) throw Object.assign(new Error(data.error ?? `Request failed (${res.status})`), { status: res.status });
   return data;
 }

@@ -103,3 +103,10 @@ test('logged-in context includes the live calendar so rescheduled dates win over
   await agent.respond({ role: 'public', text: 'hi' });
   assert.doesNotMatch(context, /Upcoming calendar/, 'public visitors get no student calendar');
 });
+
+test('replies are cleaned for speech: markdown lists become one sentence, plain text untouched', async () => {
+  const { toSpokenText } = await import('../services/history.js');
+  assert.equal(toSpokenText('Bring these:\n\n- **10th** mark sheet\n- Aadhaar card\n- Photos.'), 'Bring these: 10th mark sheet, Aadhaar card, Photos.');
+  assert.equal(toSpokenText('Your attendance is 76 percent.\nIn CS304 it is also 76.'), 'Your attendance is 76 percent.\nIn CS304 it is also 76.');
+  assert.equal(toSpokenText('## Fees\n1. Tuition 1,25,000 rupees'), 'Fees\nTuition 1,25,000 rupees');
+});

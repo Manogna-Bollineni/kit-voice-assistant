@@ -26,7 +26,7 @@ const sttProviders = buildSttProviders(config.stt);
 if (!sttProviders.length) console.warn('No speech-to-text key set (GROQ_API_KEY / DEEPGRAM_API_KEY / OPENAI_API_KEY).');
 
 const store = await openStore(config);
-const sessions = createSessionStore();
+const sessions = createSessionStore({ persist: store, secret: config.sessionSecret });
 setInterval(() => sessions.sweep(), 10 * 60 * 1000).unref();
 
 await knowledge.start();

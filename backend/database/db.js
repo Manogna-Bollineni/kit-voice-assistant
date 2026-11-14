@@ -20,6 +20,10 @@ const SCHEMA = [
      meta TEXT,
      created_at TEXT NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS messages_conversation ON messages(conversation_id, created_at)`,
+  `CREATE TABLE IF NOT EXISTS sessions (
+     id_hash TEXT PRIMARY KEY,
+     data TEXT NOT NULL,
+     expires_at TEXT NOT NULL)`,
 ];
 
 // Records the assistant created or changed in the college system, with columns taken from the API schemas
@@ -97,6 +101,16 @@ function api(q) {
       await q.run(sql, values);
       return true;
     },
+    // Sessions (see auth/security.js): keyed by sha256(session id), data is encrypted.
+    async saveSession(idHash, data, expiresAt) {
+      await q.run(
+        'INSERT INTO sessions (id_hash, data, expires_at) VALUES ($1,$2,$3) ON CONFLICT (id_hash) DO UPDATE SET data = EXCLUDED.data, expires_at = EXCLUDED.expires_at',
+        [idHash, data, expiresAt],
+      );
+    },
+    loadSession: (idHash) => q.get('SELECT data, expires_at FROM sessions WHERE id_hash = $1', [idHash]),
+    deleteSession: (idHash) => q.run('DELETE FROM sessions WHERE id_hash = $1', [idHash]),
+    deleteExpiredSessions: (nowIso) => q.run('DELETE FROM sessions WHERE expires_at <= $1', [nowIso]),
     async records(table, limit = 100) {
       if (!RECORD_TABLES[table]) throw new Error(`Unknown table ${table}`);
       return q.all(`SELECT * FROM ${table} ORDER BY saved_at DESC LIMIT $1`, [limit]);

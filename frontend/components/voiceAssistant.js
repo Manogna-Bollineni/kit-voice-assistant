@@ -47,6 +47,11 @@ function replyModeToggle() {
  * Options: mode ('public' | 'member'), greeting, suggestions, userInitials, layout ('split' | 'hero').
  * Returns { ask(text) } so buttons elsewhere on the page can send a question.
  */
+/** Forget the open chat so the next login starts fresh; past chats stay on the History page. */
+export function clearOpenConversation() {
+  sessionSet('kit_conv_member', null);
+}
+
 export function mountAssistant(root, { mode, greeting, suggestions = [], userInitials, layout = 'split' }) {
   const convKey = `kit_conv_${mode}`;
   const hero = layout === 'hero';
@@ -174,6 +179,21 @@ export function mountAssistant(root, { mode, greeting, suggestions = [], userIni
     else if (greeting) log.add('assistant', greeting);
     setStatus('New conversation started');
   });
+
+  // After a refresh, show the conversation that was open in this tab (history is for logged-in users only).
+  async function restore() {
+    try {
+      const res = await fetch(`/api/history/${encodeURIComponent(conversationId)}`);
+      if (!res.ok) throw new Error(String(res.status));
+      const { messages } = await res.json();
+      for (const m of messages ?? []) log.add(m.role, m.text);
+      setStatus('Conversation restored — tap the mic to continue');
+    } catch {
+      conversationId = null;
+      sessionSet(convKey, null);
+    }
+  }
+  if (conversationId && mode === 'member') restore();
 
   return { ask };
 }
