@@ -136,3 +136,23 @@ test('live calendar facts are cached between turns of the same session', async (
   for (let i = 0; i < 3; i++) await agent.respond({ role: 'student', user: { login_id: 'arjun' }, token: 't', text: 'hi' });
   assert.equal(calendarCalls, 1);
 });
+
+test('reads after a write in the same turn are fetched fresh, not reused', async () => {
+  let listCalls = 0;
+  const writeKit = {
+    get: async (path) => (path === '/v1/me/requests' ? (listCalls++, []) : kit.get(path)),
+    post: async () => ({ id: 7, status: 'cancelled' }),
+  };
+  const provider = {
+    name: 'p',
+    run: async (p) => {
+      await p.executeTool('list_my_requests', {});
+      await p.executeTool('cancel_my_request', { id: 7, user_confirmed: true });
+      await p.executeTool('list_my_requests', {});
+      return { text: 'ok' };
+    },
+  };
+  const agent = createAgent({ providers: [provider], knowledge, kit: writeKit, logger: silentLogger });
+  await agent.respond({ role: 'student', user: { login_id: 'arjun' }, token: 't', text: 'yes, cancel it' });
+  assert.equal(listCalls, 2);
+});

@@ -100,7 +100,8 @@ export function createAgent({
         if (reads.has(key)) return reads.get(key);
         const result = await executeTool(name, args, ctx);
         actions.push(summarise(name, args, result));
-        if (!result.write && !result.isError) reads.set(key, result);
+        if (result.write) reads.clear(); // after a change, later reads must see fresh data
+        else if (!result.isError) reads.set(key, result);
         return result;
       };
       const todayInfo = await today();
