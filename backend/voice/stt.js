@@ -50,7 +50,10 @@ function deepgram({ apiKey, timeoutMs, fetchImpl }) {
 export function buildSttProviders({ groqKey, openaiKey, deepgramKey, timeoutMs = 15000 }, fetchImpl = fetch) {
   const list = [];
   if (groqKey) {
-    list.push(whisperLike({ name: 'groq', url: 'https://api.groq.com/openai/v1/audio/transcriptions', apiKey: groqKey, model: 'whisper-large-v3-turbo', timeoutMs, fetchImpl }));
+    const url = 'https://api.groq.com/openai/v1/audio/transcriptions';
+    list.push(whisperLike({ name: 'groq', url, apiKey: groqKey, model: 'whisper-large-v3-turbo', timeoutMs, fetchImpl }));
+    // Same key, separate per-model rate limit: a backup when the turbo model is throttled.
+    list.push(whisperLike({ name: 'groq-large', url, apiKey: groqKey, model: 'whisper-large-v3', timeoutMs, fetchImpl }));
   }
   if (deepgramKey) list.push(deepgram({ apiKey: deepgramKey, timeoutMs, fetchImpl }));
   if (openaiKey) {

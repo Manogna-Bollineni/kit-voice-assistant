@@ -9,3 +9,9 @@ test('voice replies follow the user setting: typed questions get text only by de
   assert.equal(shouldSpeak('off', 'voice'), false, 'never');
   assert.deepEqual(Object.keys(REPLY_MODES), ['auto', 'on', 'off']);
 });
+
+test('with only a Groq key, speech has two Groq models so one throttled model is not fatal', async () => {
+  const { buildSttProviders } = await import('../voice/stt.js');
+  const names = buildSttProviders({ groqKey: 'k' }).map((p) => p.name);
+  assert.deepEqual(names, ['groq', 'groq-large']);
+});
