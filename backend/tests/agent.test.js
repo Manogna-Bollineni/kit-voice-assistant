@@ -110,3 +110,29 @@ test('replies are cleaned for speech: markdown lists become one sentence, plain 
   assert.equal(toSpokenText('Your attendance is 76 percent.\nIn CS304 it is also 76.'), 'Your attendance is 76 percent.\nIn CS304 it is also 76.');
   assert.equal(toSpokenText('## Fees\n1. Tuition 1,25,000 rupees'), 'Fees\nTuition 1,25,000 rupees');
 });
+
+test('a failover reuses reads from the failed provider instead of calling the college system again', async () => {
+  let calls = 0;
+  const countingKit = { get: async (path) => (path === '/v1/me' ? (calls++, { name: 'Arjun' }) : kit.get(path)) };
+  const callsProfile = (fail) => ({
+    name: fail ? 'primary' : 'backup',
+    run: async (p) => {
+      await p.executeTool('get_my_profile', {});
+      if (fail) throw new Error('timeout after tool');
+      return { text: 'ok' };
+    },
+  });
+  const agent = createAgent({ providers: [callsProfile(true), callsProfile(false)], knowledge, kit: countingKit, logger: silentLogger });
+  const out = await agent.respond({ role: 'student', user: { login_id: 'arjun' }, token: 't', text: 'my profile' });
+  assert.equal(calls, 1, 'profile fetched once');
+  assert.equal(out.actions.length, 1, 'action logged once');
+});
+
+test('live calendar facts are cached between turns of the same session', async () => {
+  let calendarCalls = 0;
+  const cachingKit = { get: async (path) => (path === '/v1/calendar' ? (calendarCalls++, []) : kit.get(path)) };
+  const provider = { name: 'p', run: async () => ({ text: 'ok' }) };
+  const agent = createAgent({ providers: [provider], knowledge, kit: cachingKit, logger: silentLogger });
+  for (let i = 0; i < 3; i++) await agent.respond({ role: 'student', user: { login_id: 'arjun' }, token: 't', text: 'hi' });
+  assert.equal(calendarCalls, 1);
+});

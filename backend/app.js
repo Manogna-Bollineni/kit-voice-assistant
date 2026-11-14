@@ -15,6 +15,7 @@ const PROTECTED_PAGES = new Set(['/assistant', '/history']);
 const LOGIN_ID = /^[A-Za-z0-9._-]{2,64}$/;
 const MAX_TEXT = 1000;
 const HISTORY_TURNS = 12;
+const HISTORY_CHARS = 800; // older replies are context only; trimming them keeps every prompt small
 
 function rateLimit({ windowMs, max }) {
   const hits = new Map();
@@ -166,7 +167,7 @@ export function createApp({ kit, agent, transcriber, store, sessions, knowledge,
     if (!conversation) conversation = await store.createConversation(req.owner, mode, text);
 
     const past = await store.recentMessages(conversation.id, HISTORY_TURNS);
-    const history = past.map((m) => ({ role: m.role, text: m.text }));
+    const history = past.map((m) => ({ role: m.role, text: m.text.length > HISTORY_CHARS ? `${m.text.slice(0, HISTORY_CHARS)}…` : m.text }));
     let sessionExpired = false;
     let result;
     try {

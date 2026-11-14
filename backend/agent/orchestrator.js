@@ -24,6 +24,7 @@ export function createAgent({
   todayTtlMs = 60000,
 }) {
   let todayCache = { value: null, at: 0 };
+  const factsCache = new Map(); // per session token: live calendar/classes change rarely, so reuse them for a minute
 
   async function today() {
     if (todayCache.value && Date.now() - todayCache.at < todayTtlMs)
@@ -39,6 +40,16 @@ export function createAgent({
   /** Live calendar (and a teacher's classes) for the context block, so dates come from the system of record, not circular text. */
   async function liveFacts(role, token, todayDate) {
     if (!token || role === "public") return "";
+    const key = `${role}:${token}:${todayDate}`;
+    const hit = factsCache.get(key);
+    if (hit && Date.now() - hit.at < todayTtlMs) return hit.value;
+    const value = await fetchLiveFacts(role, token, todayDate);
+    if (factsCache.size > 500) factsCache.clear();
+    factsCache.set(key, { value, at: Date.now() });
+    return value;
+  }
+
+  async function fetchLiveFacts(role, token, todayDate) {
     const to = todayDate ? new Date(Date.parse(`${todayDate}T00:00:00Z`) + 30 * 86400000).toISOString().slice(0, 10) : undefined;
     const [calendar, classes] = await Promise.all([
       kit.get("/v1/calendar", { token, query: { from: todayDate, to } }).catch(() => null),
@@ -82,9 +93,14 @@ export function createAgent({
         logger,
         userText: text,
       };
+      // Reads are reused within a turn, so a provider failover does not repeat college calls or log duplicate actions.
+      const reads = new Map();
       const run = async (name, args) => {
+        const key = `${name}:${JSON.stringify(args ?? {})}`;
+        if (reads.has(key)) return reads.get(key);
         const result = await executeTool(name, args, ctx);
         actions.push(summarise(name, args, result));
+        if (!result.write && !result.isError) reads.set(key, result);
         return result;
       };
       const todayInfo = await today();
