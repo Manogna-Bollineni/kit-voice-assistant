@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KIT Login</title>
+    <meta name="theme-color" content="#0e5c6b" />
+    <script src="/services/theme.js"></script>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" />
+    <link rel="stylesheet" href="/styles/style.css" />
+    <script type="module" src="/pages/login.js"></script>
+  </head>
+  <body>
+    <header><div class="bar" data-header></div></header>
+    <main>
+      <div class="card pad auth">
+        <h1>Welcome back</h1>
+        <p class="muted">Students and teachers, log in to use your personal assistant.</p>
+        <form id="login" class="stack">
+          <label>Login ID <input name="login_id" autocomplete="username" required maxlength="64" /></label>
+          <label>Password <input name="password" type="password" autocomplete="current-password" required maxlength="128" /></label>
+          <button class="btn" type="submit">Log in</button>
+          <p class="error" id="error" role="alert"></p>
+        </form>
+      </div>
+    </main>
+  </body>
+</html>

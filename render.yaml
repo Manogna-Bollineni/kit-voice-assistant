@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: kit-voice-assistant
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: node backend/main.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22.14.0
+      - key: KIT_API_BASE
+        value: https://ht.knowvally.com
+      - key: KIT_PARTICIPANT_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DEEPGRAM_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kit-history
+          property: connectionString
+
+databases:
+  - name: kit-history
+    plan: free
